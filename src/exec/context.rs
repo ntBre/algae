@@ -1,11 +1,10 @@
-use std::{collections::HashMap, io::Write};
+use std::{collections::HashMap, str::FromStr};
 
 use crate::{
     config::Config,
     value::{
         context::{Expr, UnaryOp},
-        eval::{reduce, scan},
-        unary::unary_ops,
+        eval::{reduce, scan, Builtin},
         Value,
     },
 };
@@ -22,10 +21,10 @@ struct OpDef {
 
 /// Context holds execution context, specifically the binding of names to values
 /// and operators.
-pub struct Context<'a, O: Write, E: Write> {
+pub struct Context<'a> {
     /// config is the configuration state used for evaluation, printing, etc.
     /// Accessed through the [config] method.
-    config: &'a Config<O, E>,
+    config: &'a Config,
 
     /// size of each stack frame on the call stack
     frame_sizes: Vec<usize>,
@@ -34,11 +33,11 @@ pub struct Context<'a, O: Write, E: Write> {
 
     ///  `unary_fn` maps the names of unary functions (ops) to their
     ///  implemenations.
-    unary_fn: HashMap<String, Function<O, E>>,
+    unary_fn: HashMap<String, Function<'a>>,
 
     ///  `binary_fn` maps the names of binary functions (ops) to their
     ///  implemenations.
-    binary_fn: HashMap<String, Function<O, E>>,
+    binary_fn: HashMap<String, Function<'a>>,
 
     /// defs is a list of defined ops, in time order. it is used when saving the
     /// `Context` to a file.
@@ -48,10 +47,10 @@ pub struct Context<'a, O: Write, E: Write> {
     variables: Vec<String>,
 }
 
-impl<'a, O: Write, E: Write> Context<'a, O, E> {
+impl<'a> Context<'a> {
     /// returns a new execution context: the stack and variables, plus the
     /// execution configuration.
-    pub fn new(config: &'a Config<O, E>) -> Self {
+    pub fn new(config: &'a Config) -> Self {
         Self {
             config,
             frame_sizes: Vec::new(),
@@ -64,7 +63,7 @@ impl<'a, O: Write, E: Write> Context<'a, O, E> {
         }
     }
 
-    pub fn config(&self) -> &Config<O, E> {
+    pub fn config(&self) -> &Config {
         self.config
     }
 
@@ -100,7 +99,7 @@ impl<'a, O: Write, E: Write> Context<'a, O, E> {
     }
 
     /// push pushes a new local frame onto the context stack
-    fn push(&mut self, fun: Function<O, E>) {
+    fn push(&mut self, fun: Function<'a>) {
         let n = self.stack.len();
         let lfun = fun.locals.len();
         self.frame_sizes.push(lfun);
@@ -114,7 +113,7 @@ impl<'a, O: Write, E: Write> Context<'a, O, E> {
     }
 
     /// eval evaluates a list of expressions
-    pub fn eval(&self, exprs: Vec<&dyn Expr<O, E>>) -> Vec<Value> {
+    pub fn eval(&self, exprs: Vec<&dyn Expr>) -> Vec<Value> {
         exprs.iter().flat_map(|e| e.eval(self)).collect()
     }
 
@@ -129,15 +128,15 @@ impl<'a, O: Write, E: Write> Context<'a, O, E> {
             }
         }
         let fun = self.unary(op);
-	fun.unwrap().eval_unary(self, right)
+        fun.unwrap().eval_unary(self, right)
     }
 
-    pub fn unary(&self, op: String) -> Option<&dyn UnaryOp<O, E>> {
+    pub fn unary(&'a self, op: String) -> Option<Box<dyn UnaryOp<'a> + 'a>> {
         if let Some(user_fun) = self.unary_fn.get(&op) {
-            return Some(user_fun);
+            return Some(Box::new(user_fun));
         }
-        if let Some(builtin) = unary_ops(&op) {
-            return Some(builtin);
+        if let Ok(builtin) = Builtin::from_str(&op) {
+            return Some(Box::new(builtin));
         }
         None
     }
