@@ -1,3 +1,5 @@
+#![feature(iter_collect_into)]
+
 pub mod config {
     use std::time::{self, Duration, SystemTime, UNIX_EPOCH};
 
@@ -49,67 +51,5 @@ pub mod config {
     }
 }
 
-pub mod value {
-    #[derive(Default)]
-    pub enum Value {
-        Float(f64),
-        #[default]
-        None,
-    }
-
-    pub mod eval {
-        use std::str::FromStr;
-
-        use crate::exec::context::Context;
-
-        use super::{context::UnaryOp, Value};
-
-        pub enum Builtin {
-            Roll,
-        }
-
-        pub struct ParseBuiltinError;
-        impl FromStr for Builtin {
-            type Err = ParseBuiltinError;
-
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                match s {
-                    "?" => Ok(Self::Roll),
-                    _ => Err(ParseBuiltinError),
-                }
-            }
-        }
-
-        impl UnaryOp<'_> for Builtin {
-            fn eval_unary(&self, _ctx: &Context, _right: Value) -> Value {
-                todo!()
-            }
-        }
-
-        pub fn reduce(_c: &Context, _op: &str, _v: Value) -> Value {
-            todo!()
-        }
-
-        pub fn scan(_c: &Context, _op: &str, _v: Value) -> Value {
-            todo!()
-        }
-    }
-
-    pub mod context {
-
-        use crate::exec::context::Context;
-
-        use super::Value;
-
-        pub trait Expr {
-            fn prog_string(&self) -> String;
-            fn eval(&self, ctx: &Context) -> Option<Value>;
-        }
-
-        pub trait UnaryOp<'a> {
-            fn eval_unary(&self, ctx: &Context, right: Value) -> Value;
-        }
-    }
-}
-
 pub mod exec;
+pub mod value;
