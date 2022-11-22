@@ -27,6 +27,7 @@ impl OpDef {
 
 /// Context holds execution context, specifically the binding of names to values
 /// and operators.
+#[allow(unused)]
 pub struct Context<'a> {
     /// config is the configuration state used for evaluation, printing, etc.
     /// Accessed through the [config] method.
@@ -105,6 +106,7 @@ impl<'a> Context<'a> {
     }
 
     /// push pushes a new local frame onto the context stack
+    #[allow(unused)]
     fn push(&mut self, fun: Function<'a>) {
         let n = self.stack.len();
         let lfun = fun.locals.len();
@@ -113,6 +115,7 @@ impl<'a> Context<'a> {
     }
 
     /// pop pops the top frame from the stack
+    #[allow(unused)]
     fn pop(&mut self) {
         self.frame_sizes.pop();
         self.stack.pop();
@@ -151,11 +154,11 @@ impl<'a> Context<'a> {
     }
 
     /// check if op has been defined by the user
-    pub fn user_defined(&self, op: String, is_binary: bool) -> bool {
+    pub fn user_defined(&self, op: &str, is_binary: bool) -> bool {
         if is_binary {
-            self.binary_fn.get(&op).is_some()
+            self.binary_fn.get(op).is_some()
         } else {
-            self.unary_fn.get(&op).is_some()
+            self.unary_fn.get(op).is_some()
         }
     }
 
@@ -242,6 +245,7 @@ impl<'a> Context<'a> {
 
     /// `no_op` is the dual of noVar. It also checks for assignment to builtins.
     /// It just errors out if there is a conflict.
+    #[allow(unused)]
     fn no_op(&mut self, name: &str) {
         if name == "pi" || name == "e" {
             panic!("can't reassign `{name}`");
@@ -263,6 +267,7 @@ impl<'a> Context<'a> {
     }
 
     /// check if `op` is defined as a variable
+    #[allow(unused)]
     fn is_variable(&self, op: String) -> bool {
         self.variables.iter().any(|var| *var == op)
     }

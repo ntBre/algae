@@ -3,6 +3,7 @@
 pub mod config {
     use std::time::{self, Duration, SystemTime, UNIX_EPOCH};
 
+    #[allow(unused)]
     pub struct Config {
         prompt: String,
         format: String,
@@ -21,6 +22,12 @@ pub mod config {
         sys_time: time::Duration,
         input_base: usize,
         output_base: usize,
+    }
+
+    impl Config {
+        pub fn input_base(&self) -> usize {
+            self.input_base
+        }
     }
 
     impl Default for Config {
@@ -50,6 +57,6 @@ pub mod config {
         }
     }
 }
-
 pub mod exec;
+pub mod scan;
 pub mod value;

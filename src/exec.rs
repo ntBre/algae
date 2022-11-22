@@ -1,4 +1,12 @@
+use std::str::FromStr;
+
+use crate::value::eval::{binary::BinaryBuiltin, unary::UnaryBuiltin};
+
 pub mod context;
+
+pub fn predefined(op: &str) -> bool {
+    BinaryBuiltin::from_str(op).is_ok() || UnaryBuiltin::from_str(op).is_ok()
+}
 
 pub mod function {
 
@@ -7,6 +15,7 @@ pub mod function {
         Value,
     };
 
+    #[allow(unused)]
     pub struct Function<'a> {
         pub is_binary: bool,
         name: String,
