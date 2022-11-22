@@ -262,12 +262,8 @@ impl<'a> Context<'a> {
         self.variables.clear();
     }
 
+    /// check if `op` is defined as a variable
     fn is_variable(&self, op: String) -> bool {
-        for var in &self.variables {
-            if op == *var {
-                return true;
-            }
-        }
-        false
+        self.variables.iter().any(|var| *var == op)
     }
 }
