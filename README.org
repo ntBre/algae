@@ -47,13 +47,13 @@
 | value/unary.go      |   935 |        |
 | value/binary.go     |  1521 |        |
 
-#+begin_src awk :stdin data
+#+begin_src awk :stdin data :exports both
   $3 ~ /x/ { done += $2 }
     { tot += $2 }
   END {
-  printf "%.2f%% completed", 100*done/tot
+  printf "%.2f%% completed out of %d lines", 100*done/tot, tot
   }
 #+end_src
 
 #+RESULTS:
-: 2.19 % completed
+: 2.19% completed out of 11730 lines
