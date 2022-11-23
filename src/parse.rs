@@ -19,7 +19,7 @@ pub struct Parser<'a, R: Read> {
 
 impl<'a, R: Read> Parser<'a, R> {
     pub fn new(
-        filename: String,
+        filename: &str,
         scanner: &'a Scanner<'a, R>,
         context: &'a Context<'a>,
     ) -> Self {
@@ -27,7 +27,7 @@ impl<'a, R: Read> Parser<'a, R> {
             scanner,
             tokens: Vec::new(),
             token_buf: std::array::from_fn(|_| Token::default()),
-            filename,
+            filename: filename.to_owned(),
             line_num: 0,
             context,
         }

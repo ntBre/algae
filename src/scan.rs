@@ -72,7 +72,7 @@ impl Display for Token {
 
 #[allow(unused)]
 pub struct Scanner<'a, R: Read> {
-    context: Context<'a>,
+    context: &'a Context<'a>,
     r: R,
     done: bool,
     name: String,
@@ -93,7 +93,7 @@ pub struct Scanner<'a, R: Read> {
 
 impl<'a, R: Read> Scanner<'a, R> {
     #[allow(unused)]
-    pub fn new(context: Context<'a>, name: &str, r: R) -> Self {
+    pub fn new(context: &'a Context<'a>, name: &str, r: R) -> Self {
         Self {
             context,
             r,
