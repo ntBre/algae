@@ -27,7 +27,6 @@ impl OpDef {
 
 /// Context holds execution context, specifically the binding of names to values
 /// and operators.
-#[allow(unused)]
 pub struct Context<'a> {
     /// config is the configuration state used for evaluation, printing, etc.
     /// Accessed through the [config] method.

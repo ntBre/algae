@@ -34,7 +34,6 @@ impl Type {
     ///
     /// [`Newline`]: Type::Newline
     #[must_use]
-    #[allow(unused)]
     fn is_newline(&self) -> bool {
         matches!(self, Self::Newline)
     }
@@ -92,7 +91,6 @@ pub struct Scanner<'a, R: Read> {
 }
 
 impl<'a, R: Read> Scanner<'a, R> {
-    #[allow(unused)]
     pub fn new(context: &'a Context<'a>, name: &str, r: R) -> Self {
         Self {
             context,
@@ -177,7 +175,6 @@ impl<'a, R: Read> Scanner<'a, R> {
         (c1, c2)
     }
 
-    #[allow(unused)]
     fn backup(&mut self) {
         if self.last_char.is_none() {
             return;
@@ -192,7 +189,6 @@ impl<'a, R: Read> Scanner<'a, R> {
         }
     }
 
-    #[allow(unused)]
     fn emit(&mut self, t: Type) -> Lex {
         if t.is_newline() {
             self.line += 1;
@@ -202,7 +198,6 @@ impl<'a, R: Read> Scanner<'a, R> {
         Lex::None
     }
 
-    #[allow(unused)]
     fn accept(&mut self, valid: &str) -> bool {
         if let Some(c) = self.next_inner() {
             if valid.contains(char::from(c)) {
@@ -214,7 +209,6 @@ impl<'a, R: Read> Scanner<'a, R> {
     }
 
     /// consumes a run of runes from the valid set
-    #[allow(unused)]
     fn accept_run(&mut self, valid: &str) {
         while let Some(c) = self.next_inner() {
             if !valid.contains(char::from(c)) {
@@ -232,7 +226,6 @@ impl<'a, R: Read> Scanner<'a, R> {
         Lex::None
     }
 
-    #[allow(unused)]
     fn next(&mut self) -> &Token {
         self.read_ok = true;
         self.last_char = None;
@@ -247,9 +240,7 @@ impl<'a, R: Read> Scanner<'a, R> {
         }
     }
 
-    #[allow(unused)]
     fn is_numeral(&self, r: u8) -> bool {
-        #[allow(unused)]
         if (b'0'..=b'9').contains(&r) {
             return true;
         }
@@ -267,7 +258,6 @@ impl<'a, R: Read> Scanner<'a, R> {
         false
     }
 
-    #[allow(unused)]
     fn is_operator(&mut self, r: u8) -> bool {
         match r {
             b'?' | b'+' | b'-' | b'/' | b'%' | b'&' | b'|' | b'^' | b',' => {}
@@ -312,7 +302,6 @@ impl<'a, R: Read> Scanner<'a, R> {
         true
     }
 
-    #[allow(unused)]
     fn at_terminator(&mut self) -> bool {
         let Some(r) = self.peek() else {
 	    return true;
@@ -334,7 +323,6 @@ impl<'a, R: Read> Scanner<'a, R> {
         false
     }
 
-    #[allow(unused)]
     fn defined(&self, word: &str) -> bool {
         predefined(word) || self.context.user_defined(word, true)
     }
@@ -394,12 +382,10 @@ fn digits_for_base(mut base: usize) -> String {
     }
 }
 
-#[allow(unused)]
 fn is_alpha_numeric(r: u8) -> bool {
     r == b'_' || r.is_ascii_alphabetic() || r.is_ascii_digit()
 }
 
-#[allow(unused)]
 enum Lex {
     Any,
     Comment,
@@ -413,7 +399,6 @@ enum Lex {
 }
 
 impl Lex {
-    #[allow(unused)]
     fn run<R: Read>(self, l: &mut Scanner<R>) -> Self {
         match self {
             Lex::Comment => {
@@ -544,7 +529,7 @@ impl Lex {
                                                 "bad character {r}"
                                             ));
                                         }
-                                        let word = l.word();
+                                        let word = &l.input[prev_pos..l.pos];
                                         if !l.defined(word) {
                                             return l.errorf(format!(
                                                 "`{word}` is not an operator",
@@ -586,7 +571,7 @@ impl Lex {
 			return l.errorf("unterminated quoted string".to_owned());
 		    };
                     if let Some(r) = l.next_inner() && r != b'\n' && r == b'\\' {
-				continue;;
+				continue;
 		    } else if r == b'\n' {
 			return l.errorf("unterminated quote string".to_owned());
 		    } else if r == quote {
@@ -657,7 +642,6 @@ impl Lex {
     ///
     /// [`None`]: Lex::None
     #[must_use]
-    #[allow(unused)]
     fn is_none(&self) -> bool {
         matches!(self, Self::None)
     }
@@ -743,7 +727,6 @@ fn is_space(r: u8) -> bool {
     r == b' ' || r == b'\t'
 }
 
-#[allow(unused)]
 fn is_all_digits(s: &str, base: usize) -> bool {
     let base = base as u8;
     let top = b'a' + base - 10 - 1;
