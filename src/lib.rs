@@ -1,4 +1,4 @@
-#![feature(iter_collect_into)]
+#![feature(iter_collect_into, let_chains)]
 
 pub mod config {
     use std::time::{self, Duration, SystemTime, UNIX_EPOCH};

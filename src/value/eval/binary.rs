@@ -12,6 +12,11 @@ pub enum BinaryBuiltin {
     Plus,
 }
 
+/// return whether or not `s` is a BinaryBuiltin
+pub fn is_binary_op(s: &str) -> bool {
+    BinaryBuiltin::from_str(s).is_ok()
+}
+
 impl FromStr for BinaryBuiltin {
     type Err = ParseBuiltinError;
 

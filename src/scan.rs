@@ -1,6 +1,9 @@
 use std::{fmt::Display, io::Read};
 
-use crate::exec::{context::Context, predefined};
+use crate::{
+    exec::{context::Context, predefined},
+    value::eval::binary::is_binary_op,
+};
 
 /// identifies the type of lex items
 #[derive(Clone, Copy, Debug, Default)]
@@ -108,6 +111,11 @@ impl<'a, R: Read> Scanner<'a, R> {
         }
     }
 
+    /// return the current word in `self.input`
+    fn word(&self) -> &str {
+        &self.input[self.start..self.pos]
+    }
+
     // TODO looks like reading to newline, which we could probably do with
     // lines()
     fn load_line(&mut self) {
@@ -138,7 +146,7 @@ impl<'a, R: Read> Scanner<'a, R> {
     fn read_rune(&mut self) -> (Option<u8>, usize) {
         if !self.done && self.pos == self.input.len() {
             if !self.read_ok {
-                self.errorf("incomplete token");
+                self.errorf("incomplete token".to_owned());
                 return (Some(b'\n'), 1);
             }
             self.load_line();
@@ -150,9 +158,9 @@ impl<'a, R: Read> Scanner<'a, R> {
     }
 
     fn next_inner(&mut self) -> Option<u8> {
-        let (c, w) = self.read_rune();
-        self.pos += w;
-        c
+        (self.last_char, self.last_width) = self.read_rune();
+        self.pos += self.last_width;
+        self.last_char
     }
 
     fn peek(&mut self) -> Option<u8> {
@@ -175,7 +183,7 @@ impl<'a, R: Read> Scanner<'a, R> {
             return;
         }
         if self.pos == self.start {
-            self.errorf("internal error: backup at start of input");
+            self.errorf("internal error: backup at start of input".to_owned());
         }
         if self.pos > self.start {
             todo!("can't happen?");
@@ -189,14 +197,13 @@ impl<'a, R: Read> Scanner<'a, R> {
         if t.is_newline() {
             self.line += 1;
         }
-        let text = &self.input[self.start..self.pos];
-        self.token = Token::new(t, self.line, text.to_owned());
+        self.token = Token::new(t, self.line, self.word().to_owned());
         self.start = self.pos;
         Lex::None
     }
 
     #[allow(unused)]
-    fn accept(&mut self, valid: String) -> bool {
+    fn accept(&mut self, valid: &str) -> bool {
         if let Some(c) = self.next_inner() {
             if valid.contains(char::from(c)) {
                 return true;
@@ -208,7 +215,7 @@ impl<'a, R: Read> Scanner<'a, R> {
 
     /// consumes a run of runes from the valid set
     #[allow(unused)]
-    fn accept_run(&mut self, valid: String) {
+    fn accept_run(&mut self, valid: &str) {
         while let Some(c) = self.next_inner() {
             if !valid.contains(char::from(c)) {
                 break;
@@ -217,8 +224,8 @@ impl<'a, R: Read> Scanner<'a, R> {
         self.backup()
     }
 
-    fn errorf(&mut self, arg: &str) -> Lex {
-        self.token = Token::new(Type::Error, self.start, arg.to_owned());
+    fn errorf(&mut self, arg: String) -> Lex {
+        self.token = Token::new(Type::Error, self.start, arg);
         self.start = 0;
         self.pos = 0;
         self.input.clear();
@@ -331,7 +338,62 @@ impl<'a, R: Read> Scanner<'a, R> {
     fn defined(&self, word: &str) -> bool {
         predefined(word) || self.context.user_defined(word, true)
     }
+
+    fn scan_number(
+        &mut self,
+        following_slash_ok: bool,
+        following_j_ok: bool,
+    ) -> bool {
+        let base = self.context.config().input_base();
+        let mut digits = digits_for_base(base);
+        // if base 0 (default), accept octal for 0 or hex for 0x or 0X.
+        if base == 0 && self.accept("0") && self.accept("xX") {
+            digits = digits_for_base(16);
+        }
+        self.accept_run(&digits);
+        if self.accept(".") {
+            self.accept_run(&digits);
+        }
+        if self.accept("eE") {
+            self.accept("+-");
+            // shouldn't this accept our base's digits?
+            self.accept_run("0123456789");
+        }
+        if let Some(r) = self.peek() {
+            if following_slash_ok && r == b'/' {
+                return true;
+            }
+            if following_j_ok && r == b'j' {
+                return true;
+            }
+            if r != b'o' && is_alpha_numeric(r) {
+                self.next();
+                return false;
+            }
+            if r == b'.' || !self.at_terminator() {
+                self.next();
+                return false;
+            }
+        }
+        true
+    }
 }
+
+/// returns the digit set for numbers in the specified base.
+fn digits_for_base(mut base: usize) -> String {
+    if base == 0 {
+        base = 10;
+    }
+    const DECIMAL: &str = "0123456789";
+    const LOWER: &str = "abcdefghijklmnopqrstuvwxyz";
+    const UPPER: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if base <= 10 {
+        String::from(&DECIMAL[..10])
+    } else {
+        String::from(DECIMAL) + &LOWER[..base - 10] + &UPPER[..base - 10]
+    }
+}
+
 #[allow(unused)]
 fn is_alpha_numeric(r: u8) -> bool {
     r == b'_' || r.is_ascii_alphabetic() || r.is_ascii_digit()
@@ -354,7 +416,22 @@ impl Lex {
     #[allow(unused)]
     fn run<R: Read>(self, l: &mut Scanner<R>) -> Self {
         match self {
-            Lex::Comment => todo!(),
+            Lex::Comment => {
+                loop {
+                    let Some(r) = l.next_inner() else {
+			break
+		    };
+                    if r == b'\n' {
+                        break;
+                    }
+                }
+                if !l.input.is_empty() {
+                    l.pos = l.input.len();
+                    l.start = l.pos - 1;
+                    return l.emit(Type::Newline);
+                }
+                Self::Any
+            }
             Lex::Any => {
                 let Some(r) = l.next_inner() else {
 		    return Self::None
@@ -412,9 +489,9 @@ impl Lex {
                 }
                 if l.at_terminator() {
                     let e = format!("bad character {:?}", l.next());
-                    return l.errorf(&e);
+                    return l.errorf(e);
                 }
-                let word = &l.input[l.start..l.pos];
+                let word = l.word();
                 if word == "op" {
                     return l.emit(Type::Op);
                 } else if word == "o" {
@@ -431,10 +508,107 @@ impl Lex {
                 }
                 l.emit(Type::Identifier)
             }
-            Lex::Operator => todo!(),
-            Lex::Complex => todo!(),
-            Lex::Quote => todo!(),
-            Lex::RawQuote => todo!(),
+            Lex::Operator => {
+                let word = l.word();
+                if word == "o"
+                    || is_binary_op(word)
+                    || l.context.user_defined(word, true)
+                {
+                    if let Some(p) = l.peek() {
+                        match p {
+                            // reduction or scan
+                            b'/' | b'\\' => {
+                                l.next();
+                            }
+                            b'.' => {
+                                // inner or outer product?
+                                l.next();
+                                if let Some(pp) = l.peek() && is_digit(pp) {
+				    l.backup();
+				    return l.emit(Type::Operator)
+				}
+                                let prev_pos = l.pos;
+                                if let Some(r) = l.next_inner() {
+                                    l.is_operator(r);
+                                    if is_alpha_numeric(r) {
+                                        let r = loop {
+                                            if let Some(r) = l.next_inner() && is_alpha_numeric(r) {
+						continue;
+					    } else {
+						break r
+					    }
+                                        };
+                                        l.backup();
+                                        if !l.at_terminator() {
+                                            return l.errorf(format!(
+                                                "bad character {r}"
+                                            ));
+                                        }
+                                        let word = l.word();
+                                        if !l.defined(word) {
+                                            return l.errorf(format!(
+                                                "`{word}` is not an operator",
+                                            ));
+                                        }
+                                    };
+                                }
+                            }
+                            _ => {}
+                        };
+                    }
+                }
+                if is_identifier(l.word()) {
+                    return l.emit(Type::Identifier);
+                }
+                l.emit(Type::Operator)
+            }
+            Lex::Complex => {
+                let (ok, fun) = accept_number(l, true);
+                if !ok {
+                    return fun;
+                }
+                if !l.accept("j") {
+                    return l.emit(Type::Number);
+                }
+                let (ok, _) = accept_number(l, true);
+                if !ok {
+                    return l.errorf(format!(
+                        "bad complex  number syntax: {}",
+                        l.word()
+                    ));
+                }
+                l.emit(Type::Number)
+            }
+            Lex::Quote => {
+                let quote = l.next_inner().expect("expected quote");
+                loop {
+                    let Some(r) = l.next_inner() else {
+			return l.errorf("unterminated quoted string".to_owned());
+		    };
+                    if let Some(r) = l.next_inner() && r != b'\n' && r == b'\\' {
+				continue;;
+		    } else if r == b'\n' {
+			return l.errorf("unterminated quote string".to_owned());
+		    } else if r == quote {
+			return l.emit(Type::String);
+		    }
+                }
+            }
+            Lex::RawQuote => {
+                loop {
+                    // here we can accept a newline mid-token.
+                    l.read_ok = true;
+                    if let Some(r) = l.next_inner() {
+                        if r == b'`' {
+                            return l.emit(Type::String);
+                        }
+                    } else {
+                        return l.errorf(
+                            "unterminated raw quoted string".to_owned(),
+                        );
+                    }
+                }
+            }
             Lex::None => Lex::None,
         }
     }
@@ -476,7 +650,7 @@ impl Lex {
         if r.is_ascii() {
             return l.emit(Type::Char);
         }
-        l.errorf(&format!("unrecognized character {:?}", r))
+        l.errorf(format!("unrecognized character {:?}", r))
     }
 
     /// Returns `true` if the lex is [`None`].
@@ -487,6 +661,78 @@ impl Lex {
     fn is_none(&self) -> bool {
         matches!(self, Self::None)
     }
+}
+
+/// scans a number: decimal, octal, hex, float. This isn't a perfect number
+/// scanner - for instance it accepts "." and "0x0.2" and "089" - but when it's
+/// wrong the input is invalid and the parser will notice. `real_part` says
+/// whether this might be the first half of a complex number, permitting a 'j'
+/// afterwards. If it's false, we've just seen a 'j' and we need another number.
+/// It returns the next lex function to run. TODO should probably return an
+/// Option/Result here
+fn accept_number(l: &mut Scanner<impl Read>, real_part: bool) -> (bool, Lex) {
+    // optional leading sign
+    if l.accept("+-") && real_part {
+        if let Some(r) = l.peek() {
+            if r == b'/' || r == b'\\' {
+                l.next();
+                return (false, l.emit(Type::Operator));
+            }
+            if r != b'.' && !l.is_numeral(r) {
+                return (false, Lex::Operator);
+            }
+        }
+    }
+    if !l.scan_number(true, real_part) {
+        return (false, l.errorf(format!("bad number syntax: {}", l.word())));
+    }
+    if let Some(r) = l.peek() {
+        if r != b'/' {
+            return (true, Lex::Any);
+        }
+    }
+    l.accept("/");
+
+    if real_part && let Some(r) = l.peek() && r != b'.' && !l.is_numeral(r) {
+    	    // oops, not a rational. back up!
+    	    l.pos -= 1;
+    	    return (true, Lex::Operator);
+    	}
+
+    if !l.scan_number(false, real_part) {
+        return (false, l.errorf(format!("bad number syntax: {}", l.word())));
+    }
+    if let Some(p) = l.peek() && p == b'.' {
+	return (false, l.errorf(format!("bad number syntax: {}", l.word())));
+    }
+    (true, Lex::Any)
+}
+
+/// reports whether or not `s` is a valid identifier
+fn is_identifier(s: &str) -> bool {
+    // doesn't this mean s == "_"?
+    if s.len() == 1 && s.starts_with('_') {
+        // special symbol, can't redefine
+        return false;
+    }
+    let mut first = true;
+    for r in s.chars() {
+        if r.is_ascii_digit() {
+            if first {
+                return false;
+            }
+        } else if r != '_' && !r.is_alphabetic() {
+            // supposed to be go's unicode.IsLetter
+            return false;
+        }
+        first = false;
+    }
+    true
+}
+
+/// reports whether b is an ASCII digit
+fn is_digit(b: u8) -> bool {
+    (b'0'..=b'9').contains(&b)
 }
 
 fn is_end_of_line(r: u8) -> bool {
