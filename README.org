@@ -42,7 +42,7 @@
 | parse/help.go       |   474 |        |
 | value/eval.go       |   662 |        |
 | parse/parse.go      |   673 |        |
-| scan/scan.go        |   704 |        |
+| scan/scan.go        |   704 | x      |
 | value/matrix.go     |   762 |        |
 | value/unary.go      |   935 |        |
 | value/binary.go     |  1521 |        |
@@ -56,4 +56,4 @@
 #+end_src
 
 #+RESULTS:
-: 2.19% completed out of 11730 lines
+: 8.19% completed out of 11730 lines
