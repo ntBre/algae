@@ -59,5 +59,6 @@ pub mod config {
 }
 pub mod exec;
 pub mod parse;
+pub mod run;
 pub mod scan;
 pub mod value;
