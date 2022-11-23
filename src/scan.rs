@@ -371,6 +371,7 @@ impl<'a, R: Read, O: Write, E: Write> Scanner<'a, R, O, E> {
 }
 
 /// returns the digit set for numbers in the specified base.
+#[allow(unused)]
 fn digits_for_base(mut base: usize) -> String {
     if base == 0 {
         base = 10;
@@ -385,10 +386,12 @@ fn digits_for_base(mut base: usize) -> String {
     }
 }
 
+#[allow(unused)]
 fn is_alpha_numeric(r: u8) -> bool {
     r == b'_' || r.is_ascii_alphabetic() || r.is_ascii_digit()
 }
 
+#[allow(unused)]
 enum Lex {
     Any,
     Comment,
@@ -666,6 +669,7 @@ impl Lex {
 /// afterwards. If it's false, we've just seen a 'j' and we need another number.
 /// It returns the next lex function to run. TODO should probably return an
 /// Option/Result here
+#[allow(unused)]
 fn accept_number(
     l: &mut Scanner<impl Read, impl Write, impl Write>,
     real_part: bool,
