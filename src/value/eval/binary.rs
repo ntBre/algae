@@ -6,6 +6,7 @@ use super::super::context::BinaryOp;
 
 use super::ParseBuiltinError;
 
+use std::io::Write;
 use std::str::FromStr;
 
 pub enum BinaryBuiltin {
@@ -28,10 +29,10 @@ impl FromStr for BinaryBuiltin {
     }
 }
 
-impl BinaryOp<'_> for BinaryBuiltin {
+impl<'a, O: Write, E: Write> BinaryOp<'a, O, E> for BinaryBuiltin {
     fn eval_binary(
         &self,
-        _ctx: &Context,
+        _ctx: &Context<'a, O, E>,
         _right: Value,
         _left: Value,
     ) -> Value {

@@ -10,41 +10,43 @@ pub fn predefined(op: &str) -> bool {
 
 pub mod function {
 
+    use std::io::Write;
+
     use crate::value::{
         context::{BinaryOp, Expr, UnaryOp},
         Value,
     };
 
     #[allow(unused)]
-    pub struct Function<'a> {
+    pub struct Function<'a, O: Write, E: Write> {
         pub is_binary: bool,
         name: String,
         left: String,
         right: String,
-        body: Vec<&'a dyn Expr>,
+        body: Vec<&'a dyn Expr<'a, O, E>>,
         pub(crate) locals: Vec<String>,
         globals: Vec<String>,
     }
 
-    impl<'a> Function<'a> {
+    impl<'a, O: Write, E: Write> Function<'a, O, E> {
         pub fn name(&self) -> &str {
             self.name.as_ref()
         }
     }
 
-    impl<'a> UnaryOp<'a> for &'a Function<'a> {
+    impl<'a, O: Write, E: Write> UnaryOp<'a, O, E> for &'a Function<'a, O, E> {
         fn eval_unary(
             &self,
-            _ctx: &super::context::Context,
+            _ctx: &super::context::Context<O, E>,
             _right: crate::value::Value,
         ) -> Value {
             todo!()
         }
     }
-    impl<'a> BinaryOp<'a> for &'a Function<'a> {
+    impl<'a, O: Write, E: Write> BinaryOp<'a, O, E> for &'a Function<'a, O, E> {
         fn eval_binary(
             &self,
-            _ctx: &super::context::Context,
+            _ctx: &super::context::Context<O, E>,
             _right: Value,
             _left: Value,
         ) -> Value {

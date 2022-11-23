@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, io::Write, str::FromStr};
 
 use crate::{
     config::Config,
@@ -27,10 +27,14 @@ impl OpDef {
 
 /// Context holds execution context, specifically the binding of names to values
 /// and operators.
-pub struct Context<'a> {
+pub struct Context<'a, O, E>
+where
+    O: Write,
+    E: Write,
+{
     /// config is the configuration state used for evaluation, printing, etc.
     /// Accessed through the [config] method.
-    config: &'a Config,
+    config: &'a Config<O, E>,
 
     /// size of each stack frame on the call stack
     frame_sizes: Vec<usize>,
@@ -39,11 +43,11 @@ pub struct Context<'a> {
 
     ///  `unary_fn` maps the names of unary functions (ops) to their
     ///  implemenations.
-    unary_fn: HashMap<String, Function<'a>>,
+    unary_fn: HashMap<String, Function<'a, O, E>>,
 
     ///  `binary_fn` maps the names of binary functions (ops) to their
     ///  implemenations.
-    binary_fn: HashMap<String, Function<'a>>,
+    binary_fn: HashMap<String, Function<'a, O, E>>,
 
     /// defs is a list of defined ops, in time order. it is used when saving the
     /// `Context` to a file.
@@ -53,10 +57,10 @@ pub struct Context<'a> {
     variables: Vec<String>,
 }
 
-impl<'a> Context<'a> {
+impl<'a, O: Write, E: Write> Context<'a, O, E> {
     /// returns a new execution context: the stack and variables, plus the
     /// execution configuration.
-    pub fn new(config: &'a Config) -> Self {
+    pub fn new(config: &'a Config<O, E>) -> Self {
         Self {
             config,
             frame_sizes: Vec::new(),
@@ -69,7 +73,7 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn config(&self) -> &Config {
+    pub fn config(&self) -> &Config<O, E> {
         self.config
     }
 
@@ -106,7 +110,7 @@ impl<'a> Context<'a> {
 
     /// push pushes a new local frame onto the context stack
     #[allow(unused)]
-    fn push(&mut self, fun: Function<'a>) {
+    fn push(&mut self, fun: Function<'a, O, E>) {
         let n = self.stack.len();
         let lfun = fun.locals.len();
         self.frame_sizes.push(lfun);
@@ -121,11 +125,11 @@ impl<'a> Context<'a> {
     }
 
     /// eval evaluates a list of expressions
-    pub fn eval(&self, exprs: Vec<&dyn Expr>) -> Vec<Value> {
+    pub fn eval(&self, exprs: Vec<&dyn Expr<'a, O, E>>) -> Vec<Value> {
         exprs.iter().flat_map(|e| e.eval(self)).collect()
     }
 
-    pub fn eval_unary(&self, op: String, right: Value) -> Value {
+    pub fn eval_unary(&'a self, op: String, right: Value) -> Value {
         let l = op.len();
         if l > 1 {
             let opi = op.chars().last().unwrap();
@@ -142,7 +146,10 @@ impl<'a> Context<'a> {
     }
 
     /// return the `UnaryOp` represented by `op`
-    pub fn unary(&'a self, op: &str) -> Option<Box<dyn UnaryOp<'a> + 'a>> {
+    pub fn unary(
+        &'a self,
+        op: &str,
+    ) -> Option<Box<dyn UnaryOp<'a, O, E> + 'a>> {
         if let Some(user_fun) = self.unary_fn.get(op) {
             return Some(Box::new(user_fun));
         }
@@ -161,7 +168,12 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn eval_binary(&self, left: Value, op: String, right: Value) -> Value {
+    pub fn eval_binary(
+        &'a self,
+        left: Value,
+        op: String,
+        right: Value,
+    ) -> Value {
         if op.contains('.') {
             return product(self, left, &op, right);
         }
@@ -171,7 +183,10 @@ impl<'a> Context<'a> {
         fun.eval_binary(self, left, right)
     }
 
-    pub fn binary(&'a self, op: &str) -> Option<Box<dyn BinaryOp<'a> + 'a>> {
+    pub fn binary(
+        &'a self,
+        op: &str,
+    ) -> Option<Box<dyn BinaryOp<'a, O, E> + 'a>> {
         if let Some(user_fun) = self.binary_fn.get(op) {
             return Some(Box::new(user_fun));
         }
@@ -184,7 +199,7 @@ impl<'a> Context<'a> {
     /// Define defines the function and installs it. It also performs some error
     /// checking and adds the function to the sequencing information used by the
     /// save method.
-    pub fn define(&mut self, fun: Function<'a>) {
+    pub fn define(&mut self, fun: Function<'a, O, E>) {
         let name = fun.name();
         let nname = name.to_owned();
         self.no_var(name);

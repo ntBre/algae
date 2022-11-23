@@ -10,23 +10,25 @@ pub mod eval;
 
 pub mod context {
 
+    use std::io::Write;
+
     use crate::exec::context::Context;
 
     use super::Value;
 
-    pub trait Expr {
+    pub trait Expr<'a, O: Write, E: Write> {
         fn prog_string(&self) -> String;
-        fn eval(&self, ctx: &Context) -> Option<Value>;
+        fn eval(&self, ctx: &Context<'a, O, E>) -> Option<Value>;
     }
 
-    pub trait UnaryOp<'a> {
-        fn eval_unary(&self, ctx: &Context, right: Value) -> Value;
+    pub trait UnaryOp<'a, O: Write, E: Write> {
+        fn eval_unary(&self, ctx: &Context<'a, O, E>, right: Value) -> Value;
     }
 
-    pub trait BinaryOp<'a> {
+    pub trait BinaryOp<'a, O: Write, E: Write> {
         fn eval_binary(
             &self,
-            ctx: &Context,
+            ctx: &Context<'a, O, E>,
             right: Value,
             left: Value,
         ) -> Value;

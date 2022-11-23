@@ -1,4 +1,7 @@
-use std::{fmt::Display, io::Read};
+use std::{
+    fmt::Display,
+    io::{Read, Write},
+};
 
 use crate::{
     exec::{context::Context, predefined},
@@ -70,8 +73,8 @@ impl Display for Token {
 }
 
 #[allow(unused)]
-pub struct Scanner<'a, R: Read> {
-    context: &'a Context<'a>,
+pub struct Scanner<'a, R: Read, O: Write, E: Write> {
+    context: &'a Context<'a, O, E>,
     r: R,
     done: bool,
     name: String,
@@ -90,8 +93,8 @@ pub struct Scanner<'a, R: Read> {
     token: Token,
 }
 
-impl<'a, R: Read> Scanner<'a, R> {
-    pub fn new(context: &'a Context<'a>, name: &str, r: R) -> Self {
+impl<'a, R: Read, O: Write, E: Write> Scanner<'a, R, O, E> {
+    pub fn new(context: &'a Context<'a, O, E>, name: &str, r: R) -> Self {
         Self {
             context,
             r,
@@ -399,7 +402,10 @@ enum Lex {
 }
 
 impl Lex {
-    fn run<R: Read>(self, l: &mut Scanner<R>) -> Self {
+    fn run<R: Read, O: Write, E: Write>(
+        self,
+        l: &mut Scanner<R, O, E>,
+    ) -> Self {
         match self {
             Lex::Comment => {
                 loop {
@@ -598,8 +604,11 @@ impl Lex {
         }
     }
 
-    #[allow(unused)]
-    fn fallthrough<'a, R: Read>(&self, l: &mut Scanner<'a, R>, r: u8) -> Lex {
+    fn fallthrough<'a, R: Read, O: Write, E: Write>(
+        &self,
+        l: &mut Scanner<'a, R, O, E>,
+        r: u8,
+    ) -> Lex {
         if r == b'.' || (b'0'..=b'9').contains(&r) {
             l.backup();
             return Lex::Complex;
@@ -615,8 +624,11 @@ impl Lex {
         self.fallthrough2(l, r)
     }
 
-    #[allow(unused)]
-    fn fallthrough2(&self, l: &mut Scanner<impl Read>, r: u8) -> Lex {
+    fn fallthrough2(
+        &self,
+        l: &mut Scanner<impl Read, impl Write, impl Write>,
+        r: u8,
+    ) -> Lex {
         if l.is_operator(r) {
             return Self::Operator;
         }
@@ -654,7 +666,10 @@ impl Lex {
 /// afterwards. If it's false, we've just seen a 'j' and we need another number.
 /// It returns the next lex function to run. TODO should probably return an
 /// Option/Result here
-fn accept_number(l: &mut Scanner<impl Read>, real_part: bool) -> (bool, Lex) {
+fn accept_number(
+    l: &mut Scanner<impl Read, impl Write, impl Write>,
+    real_part: bool,
+) -> (bool, Lex) {
     // optional leading sign
     if l.accept("+-") && real_part {
         if let Some(r) = l.peek() {

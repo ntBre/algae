@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Write};
 
 use crate::{exec::context::Context, parse::Parser};
 
@@ -9,10 +9,12 @@ pub struct RunError;
 /// of data (EOF) and the run was successful. Typical execution is therefore to
 /// loop calling Run until it succeeds. Error details are reported to the
 /// configured error output stream.
-pub fn run<'a>(
-    _p: &Parser<impl Read>,
-    _context: &'a Context,
+pub fn run<'a, O: Write, E: Write>(
+    _p: &Parser<impl Read, O, E>,
+    context: &'a Context<O, E>,
     _interactive: bool,
 ) -> Result<(), RunError> {
+    let conf = context.config();
+    let _w = conf.output();
     Err(RunError)
 }

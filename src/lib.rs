@@ -1,11 +1,20 @@
 #![feature(iter_collect_into, let_chains)]
 
 pub mod config {
-    use std::time::{self, Duration, SystemTime, UNIX_EPOCH};
+    use std::{
+        io::{stderr, stdout, Stderr, Stdout, Write},
+        time::{self, Duration, SystemTime, UNIX_EPOCH},
+    };
 
     #[allow(unused)]
-    pub struct Config {
+    pub struct Config<O, E>
+    where
+        O: Write,
+        E: Write,
+    {
         prompt: String,
+        output: O,
+        error: E,
         format: String,
         rat_format: String,
         format_verb: String,
@@ -24,16 +33,22 @@ pub mod config {
         output_base: usize,
     }
 
-    impl Config {
+    impl<O: Write, E: Write> Config<O, E> {
         pub fn input_base(&self) -> usize {
             self.input_base
         }
+
+        pub(crate) fn output(&self) -> &O {
+            &self.output
+        }
     }
 
-    impl Default for Config {
+    impl Default for Config<Stdout, Stderr> {
         fn default() -> Self {
             Self {
                 prompt: String::new(),
+                output: stdout(),
+                error: stderr(),
                 format: String::new(),
                 rat_format: String::new(),
                 format_verb: String::new(),
