@@ -93,11 +93,11 @@ pub struct Scanner<'a, R: Read> {
 
 impl<'a, R: Read> Scanner<'a, R> {
     #[allow(unused)]
-    fn new(context: Context<'a>, name: String, r: R) -> Self {
+    pub fn new(context: Context<'a>, name: &str, r: R) -> Self {
         Self {
             context,
             r,
-            name,
+            name: name.to_owned(),
             done: false,
             buf: Vec::new(),
             input: String::new(),
