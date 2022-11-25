@@ -13,7 +13,7 @@ pub mod operator {
         binary::{is_binary_op, BinaryBuiltin},
         unary::{is_unary_op, UnaryBuiltin},
     };
-    use std::{io::Write, str::FromStr};
+    use std::str::FromStr;
 
     use super::context::Context;
 
@@ -23,7 +23,7 @@ pub mod operator {
             || UnaryBuiltin::from_str(op).is_ok()
     }
 
-    impl<'a, O: Write, E: Write> Context<'a, O, E> {
+    impl<'a> Context<'a> {
         /// reports whether or not `op` is known
         pub fn defined_op(&self, op: &str) -> bool {
             if self.is_variable(op) {
@@ -53,43 +53,41 @@ pub mod operator {
 
 pub mod function {
 
-    use std::io::Write;
-
     use crate::value::{
         context::{BinaryOp, Expr, UnaryOp},
         Value,
     };
 
     #[allow(unused)]
-    pub struct Function<'a, O: Write, E: Write> {
+    pub struct Function<'a> {
         pub is_binary: bool,
         name: String,
         left: String,
         right: String,
-        body: Vec<&'a dyn Expr<'a, O, E>>,
+        body: Vec<&'a dyn Expr<'a>>,
         pub(crate) locals: Vec<String>,
         globals: Vec<String>,
     }
 
-    impl<'a, O: Write, E: Write> Function<'a, O, E> {
+    impl<'a> Function<'a> {
         pub fn name(&self) -> &str {
             self.name.as_ref()
         }
     }
 
-    impl<'a, O: Write, E: Write> UnaryOp<'a, O, E> for &'a Function<'a, O, E> {
+    impl<'a> UnaryOp<'a> for &'a Function<'a> {
         fn eval_unary(
             &self,
-            _ctx: &super::context::Context<O, E>,
+            _ctx: &super::context::Context,
             _right: crate::value::Value,
         ) -> Value {
             todo!()
         }
     }
-    impl<'a, O: Write, E: Write> BinaryOp<'a, O, E> for &'a Function<'a, O, E> {
+    impl<'a> BinaryOp<'a> for &'a Function<'a> {
         fn eval_binary(
             &self,
-            _ctx: &super::context::Context<O, E>,
+            _ctx: &super::context::Context,
             _right: Value,
             _left: Value,
         ) -> Value {

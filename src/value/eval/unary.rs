@@ -6,7 +6,6 @@ use super::super::context::UnaryOp;
 
 use super::ParseBuiltinError;
 
-use std::io::Write;
 use std::str::FromStr;
 
 pub enum UnaryBuiltin {
@@ -29,8 +28,8 @@ impl FromStr for UnaryBuiltin {
     }
 }
 
-impl<'a, O: Write, E: Write> UnaryOp<'a, O, E> for UnaryBuiltin {
-    fn eval_unary(&self, _ctx: &Context<'a, O, E>, _right: Value) -> Value {
+impl<'a> UnaryOp<'a> for UnaryBuiltin {
+    fn eval_unary(&self, _ctx: &Context<'a>, _right: Value) -> Value {
         todo!()
     }
 }
