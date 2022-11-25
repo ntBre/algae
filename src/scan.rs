@@ -1,10 +1,13 @@
+use std::cell::RefCell;
+use std::fmt::Debug;
+use std::rc::Rc;
 use std::{fmt::Display, io::Read};
 
 use crate::exec::operator::predefined;
 use crate::{exec::context::Context, value::eval::binary::is_binary_op};
 
 /// identifies the type of lex items
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum Type {
     #[default]
     Eof,
@@ -64,6 +67,14 @@ impl Type {
     fn is_newline(&self) -> bool {
         matches!(self, Self::Newline)
     }
+
+    /// Returns `true` if the type is [`Identifier`].
+    ///
+    /// [`Identifier`]: Type::Identifier
+    #[must_use]
+    pub fn is_identifier(&self) -> bool {
+        matches!(self, Self::Identifier)
+    }
 }
 
 /// a token or text string returned from the scanner
@@ -75,7 +86,7 @@ pub struct Token {
 }
 
 impl Token {
-    fn new(typ: Type, line: usize, text: String) -> Self {
+    pub fn new(typ: Type, line: usize, text: String) -> Self {
         Self { typ, line, text }
     }
 }
@@ -96,9 +107,10 @@ impl Display for Token {
     }
 }
 
+#[derive(Debug)]
 #[allow(unused)]
 pub struct Scanner<'a, R: Read> {
-    context: &'a Context<'a>,
+    context: Rc<RefCell<Context<'a>>>,
     r: R,
     done: bool,
     name: String,
@@ -117,8 +129,8 @@ pub struct Scanner<'a, R: Read> {
     token: Token,
 }
 
-impl<'a, R: Read> Scanner<'a, R> {
-    pub fn new(context: &'a Context<'a>, name: &str, r: R) -> Self {
+impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
+    pub fn new(context: Rc<RefCell<Context<'a>>>, name: &str, r: R) -> Self {
         Self {
             context,
             r,
@@ -210,9 +222,8 @@ impl<'a, R: Read> Scanner<'a, R> {
             self.errorf("internal error: backup at start of input".to_owned());
         }
         if self.pos > self.start {
-            todo!("can't happen?");
-            // if it can happen, this is the code
-            // self.pos -= self.last_width;
+            // TODO can't happen? is the comment from Go
+            self.pos -= self.last_width;
         }
     }
 
@@ -253,7 +264,7 @@ impl<'a, R: Read> Scanner<'a, R> {
         Lex::None
     }
 
-    fn next(&mut self) -> &Token {
+    pub fn next_token(&mut self) -> &Token {
         self.read_ok = true;
         self.last_char = None;
         self.last_width = 0;
@@ -271,7 +282,7 @@ impl<'a, R: Read> Scanner<'a, R> {
         if (b'0'..=b'9').contains(&r) {
             return true;
         }
-        let base = self.context.config().input_base();
+        let base = self.context.borrow().config().input_base();
         if base < 10 {
             return false;
         }
@@ -291,28 +302,28 @@ impl<'a, R: Read> Scanner<'a, R> {
             b'!' => {
                 if let Some(p) = self.peek() {
                     if p == b'=' {
-                        self.next();
+                        self.next_token();
                     }
                 }
             }
             b'>' => {
                 if let Some(p) = self.peek() {
                     if p == b'>' || p == b'=' {
-                        self.next();
+                        self.next_token();
                     }
                 }
             }
             b'<' => {
                 if let Some(p) = self.peek() {
                     if [b'<', b'='].contains(&p) {
-                        self.next();
+                        self.next_token();
                     }
                 }
             }
             b'*' => {
                 if let Some(p) = self.peek() {
                     if p == b'*' {
-                        self.next();
+                        self.next_token();
                     }
                 }
             }
@@ -322,7 +333,7 @@ impl<'a, R: Read> Scanner<'a, R> {
                         return false;
                     }
                 }
-                self.next();
+                self.next_token();
             }
             _ => return false,
         }
@@ -351,7 +362,7 @@ impl<'a, R: Read> Scanner<'a, R> {
     }
 
     fn defined(&self, word: &str) -> bool {
-        predefined(word) || self.context.user_defined(word, true)
+        predefined(word) || self.context.borrow().user_defined(word, true)
     }
 
     fn scan_number(
@@ -359,7 +370,7 @@ impl<'a, R: Read> Scanner<'a, R> {
         following_slash_ok: bool,
         following_j_ok: bool,
     ) -> bool {
-        let base = self.context.config().input_base();
+        let base = self.context.borrow().config().input_base();
         let mut digits = digits_for_base(base);
         // if base 0 (default), accept octal for 0 or hex for 0x or 0X.
         if base == 0 && self.accept("0") && self.accept("xX") {
@@ -382,11 +393,11 @@ impl<'a, R: Read> Scanner<'a, R> {
                 return true;
             }
             if r != b'o' && is_alpha_numeric(r) {
-                self.next();
+                self.next_token();
                 return false;
             }
             if r == b'.' || !self.at_terminator() {
-                self.next();
+                self.next_token();
                 return false;
             }
         }
@@ -429,7 +440,7 @@ enum Lex {
 }
 
 impl Lex {
-    fn run<R: Read>(self, l: &mut Scanner<R>) -> Self {
+    fn run<R: Read + Debug>(self, l: &mut Scanner<R>) -> Self {
         match self {
             Lex::Comment => {
                 loop {
@@ -490,7 +501,7 @@ impl Lex {
                     if !is_space(c) {
                         break;
                     }
-                    l.next();
+                    l.next_token();
                 }
                 l.start = l.pos;
                 Self::Any
@@ -500,10 +511,10 @@ impl Lex {
                     if !is_alpha_numeric(c) {
                         break;
                     }
-                    l.next();
+                    l.next_token();
                 }
                 if l.at_terminator() {
-                    let e = format!("bad character {:?}", l.next());
+                    let e = format!("bad character {:?}", l.next_token());
                     return l.errorf(e);
                 }
                 let word = l.word();
@@ -517,7 +528,10 @@ impl Lex {
                     }
                 } else if l.defined(word) {
                     return Self::Operator;
-                } else if is_all_digits(word, l.context.config().input_base()) {
+                } else if is_all_digits(
+                    word,
+                    l.context.borrow().config().input_base(),
+                ) {
                     l.pos = l.start;
                     return Self::Complex;
                 }
@@ -527,17 +541,17 @@ impl Lex {
                 let word = l.word();
                 if word == "o"
                     || is_binary_op(word)
-                    || l.context.user_defined(word, true)
+                    || l.context.borrow().user_defined(word, true)
                 {
                     if let Some(p) = l.peek() {
                         match p {
                             // reduction or scan
                             b'/' | b'\\' => {
-                                l.next();
+                                l.next_token();
                             }
                             b'.' => {
                                 // inner or outer product?
-                                l.next();
+                                l.next_token();
                                 if let Some(pp) = l.peek() && is_digit(pp) {
 				    l.backup();
 				    return l.emit(Type::Operator)
@@ -628,7 +642,11 @@ impl Lex {
         }
     }
 
-    fn fallthrough<'a, R: Read>(&self, l: &mut Scanner<'a, R>, r: u8) -> Lex {
+    fn fallthrough<'a, R: Read + Debug>(
+        &self,
+        l: &mut Scanner<'a, R>,
+        r: u8,
+    ) -> Lex {
         if r == b'.' || (b'0'..=b'9').contains(&r) {
             l.backup();
             return Lex::Complex;
@@ -639,12 +657,12 @@ impl Lex {
                     return l.emit(Type::Assign);
                 }
             }
-            l.next();
+            l.next_token();
         }
         self.fallthrough2(l, r)
     }
 
-    fn fallthrough2(&self, l: &mut Scanner<impl Read>, r: u8) -> Lex {
+    fn fallthrough2(&self, l: &mut Scanner<impl Read + Debug>, r: u8) -> Lex {
         if l.is_operator(r) {
             return Self::Operator;
         }
@@ -683,12 +701,15 @@ impl Lex {
 /// It returns the next lex function to run. TODO should probably return an
 /// Option/Result here
 #[allow(unused)]
-fn accept_number(l: &mut Scanner<impl Read>, real_part: bool) -> (bool, Lex) {
+fn accept_number(
+    l: &mut Scanner<impl Read + Debug>,
+    real_part: bool,
+) -> (bool, Lex) {
     // optional leading sign
     if l.accept("+-") && real_part {
         if let Some(r) = l.peek() {
             if r == b'/' || r == b'\\' {
-                l.next();
+                l.next_token();
                 return (false, l.emit(Type::Operator));
             }
             if r != b'.' && !l.is_numeral(r) {

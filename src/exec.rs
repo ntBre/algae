@@ -59,23 +59,24 @@ pub mod function {
     };
 
     #[allow(unused)]
-    pub struct Function<'a> {
+    #[derive(Clone, Debug, Default)]
+    pub struct Function {
         pub is_binary: bool,
-        name: String,
-        left: String,
-        right: String,
-        body: Vec<&'a dyn Expr<'a>>,
+        pub name: String,
+        pub left: String,
+        pub right: String,
+        body: Vec<Expr>,
         pub(crate) locals: Vec<String>,
         globals: Vec<String>,
     }
 
-    impl<'a> Function<'a> {
+    impl Function {
         pub fn name(&self) -> &str {
             self.name.as_ref()
         }
     }
 
-    impl<'a> UnaryOp<'a> for &'a Function<'a> {
+    impl<'a> UnaryOp<'a> for &'a Function {
         fn eval_unary(
             &self,
             _ctx: &super::context::Context,
@@ -84,7 +85,7 @@ pub mod function {
             todo!()
         }
     }
-    impl<'a> BinaryOp<'a> for &'a Function<'a> {
+    impl<'a> BinaryOp<'a> for &'a Function {
         fn eval_binary(
             &self,
             _ctx: &super::context::Context,

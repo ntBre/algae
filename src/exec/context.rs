@@ -14,6 +14,7 @@ use super::function::Function;
 /// Symtab is a symbol table, a map of names to values.
 type Symtab = HashMap<String, Value>;
 
+#[derive(Debug)]
 struct OpDef {
     name: String,
     is_binary: bool,
@@ -25,12 +26,13 @@ impl OpDef {
     }
 }
 
+#[derive(Debug)]
 /// Context holds execution context, specifically the binding of names to values
 /// and operators.
-pub struct Context<'a> {
+pub struct Context<'conf> {
     /// config is the configuration state used for evaluation, printing, etc.
     /// Accessed through the [config] method.
-    config: &'a Config,
+    config: &'conf Config,
 
     /// size of each stack frame on the call stack
     frame_sizes: Vec<usize>,
@@ -39,11 +41,11 @@ pub struct Context<'a> {
 
     ///  `unary_fn` maps the names of unary functions (ops) to their
     ///  implemenations.
-    pub(crate) unary_fn: HashMap<String, Function<'a>>,
+    pub(crate) unary_fn: HashMap<String, Function>,
 
     ///  `binary_fn` maps the names of binary functions (ops) to their
     ///  implemenations.
-    pub(crate) binary_fn: HashMap<String, Function<'a>>,
+    pub(crate) binary_fn: HashMap<String, Function>,
 
     /// defs is a list of defined ops, in time order. it is used when saving the
     /// `Context` to a file.
@@ -100,13 +102,13 @@ impl<'a> Context<'a> {
     /// assigns the global variable the value. The variable must be defined
     /// either in the current function or globally. Inside a function, new
     /// variables become locals.
-    fn assign_global(&mut self, name: &str, value: Value) {
+    pub fn assign_global(&mut self, name: &str, value: Value) {
         self.globals.insert(name.to_owned(), value);
     }
 
     /// push pushes a new local frame onto the context stack
     #[allow(unused)]
-    fn push(&mut self, fun: Function<'a>) {
+    fn push(&mut self, fun: Function) {
         let n = self.stack.len();
         let lfun = fun.locals.len();
         self.frame_sizes.push(lfun);
@@ -121,7 +123,7 @@ impl<'a> Context<'a> {
     }
 
     /// eval evaluates a list of expressions
-    pub fn eval(&self, exprs: Vec<&dyn Expr<'a>>) -> Vec<Value> {
+    pub fn eval(&self, exprs: Vec<Expr>) -> Vec<Value> {
         exprs.iter().flat_map(|e| e.eval(self)).collect()
     }
 
@@ -189,7 +191,7 @@ impl<'a> Context<'a> {
     /// Define defines the function and installs it. It also performs some error
     /// checking and adds the function to the sequencing information used by the
     /// save method.
-    pub fn define(&mut self, fun: Function<'a>) {
+    pub fn define(&mut self, fun: Function) {
         let name = fun.name();
         let nname = name.to_owned();
         self.no_var(name);
