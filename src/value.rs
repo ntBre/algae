@@ -1,3 +1,5 @@
+// might embed this as ValueType in Value struct that also contains is_assigment
+// field. see parse/assign.go
 #[derive(Default)]
 pub enum Value {
     Float(f64),

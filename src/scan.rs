@@ -3,10 +3,8 @@ use std::{
     io::{Read, Write},
 };
 
-use crate::{
-    exec::{context::Context, predefined},
-    value::eval::binary::is_binary_op,
-};
+use crate::exec::operator::predefined;
+use crate::{exec::context::Context, value::eval::binary::is_binary_op};
 
 /// identifies the type of lex items
 #[derive(Clone, Copy, Debug, Default)]
@@ -30,6 +28,35 @@ pub enum Type {
     Semicolon,
     String,
     Colon,
+}
+
+impl Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Type::Eof => "EOF",
+                Type::Error => "Error",
+                Type::Newline => "Newline",
+                Type::Assign => "Assign",
+                Type::Char => "Char",
+                Type::Identifier => "Identifier",
+                Type::LeftBrack => "LeftBrack",
+                Type::LeftParen => "LeftParen",
+                Type::Number => "Number",
+                Type::Operator => "Operator",
+                Type::Op => "Op",
+                Type::Rational => "Rational",
+                Type::Complex => "Complex",
+                Type::RightBrack => "RightBrack",
+                Type::RightParen => "RightParen",
+                Type::Semicolon => "Semicolon",
+                Type::String => "String",
+                Type::Colon => "Colon",
+            }
+        )
+    }
 }
 
 impl Type {

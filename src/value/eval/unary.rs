@@ -13,6 +13,11 @@ pub enum UnaryBuiltin {
     Roll,
 }
 
+/// return whether or not `s` is a UnaryBuiltin
+pub fn is_unary_op(s: &str) -> bool {
+    UnaryBuiltin::from_str(s).is_ok()
+}
+
 impl FromStr for UnaryBuiltin {
     type Err = ParseBuiltinError;
 

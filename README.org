@@ -1,51 +1,51 @@
 #+name: data
-| Filename            | Lines | Status |
-|---------------------+-------+--------|
-| exec/opdef.go       |    13 |        |
-| parse/exec/opdef.go |    14 |        |
-| run/time_unix.go    |    25 |        |
-| exec/operator.go    |    36 |        |
-| scan/type_string.go |    40 |        |
-| demo_test.go        |    60 |        |
-| parse/assign.go     |    60 |        |
-| value/loop.go       |    66 |        |
-| exec/function.go    |    76 |        |
-| value/context.go    |    76 |        |
-| value/sqrt.go       |    84 |        |
-| parse/helpdocs.go   |    94 |        |
-| value/asinh.go      |   111 |        |
-| value/const.go      |   130 |        |
-| value/char.go       |   140 |        |
-| value/value.go      |   142 |        |
-| ivy.go              |   145 |        |
-| value/sinh.go       |   160 |        |
-| value/bigfloat.go   |   161 |        |
-| value/power.go      |   172 |        |
-| value/int.go        |   173 |        |
-| value/complex.go    |   175 |        |
-| value/log.go        |   175 |        |
-| ivy_test.go         |   177 |        |
-| run/run.go          |   188 |        |
-| value/bigint.go     |   197 |        |
-| value/bigrat.go     |   198 |        |
-| value/vector.go     |   200 |        |
-| value/sin.go        |   201 |        |
-| parse/save.go       |   207 |        |
-| value/asin.go       |   210 |        |
-| parse/function.go   |   237 |        |
-| parse/helpgen.go    |   241 |        |
-| value/format.go     |   252 |        |
-| exec/context.go     |   257 | x      |
-| value/index.go      |   307 |        |
-| config/config.go    |   351 |        |
-| parse/special.go    |   448 |        |
-| parse/help.go       |   474 |        |
-| value/eval.go       |   662 |        |
-| parse/parse.go      |   673 |        |
-| scan/scan.go        |   704 | x      |
-| value/matrix.go     |   762 |        |
-| value/unary.go      |   935 |        |
-| value/binary.go     |  1521 |        |
+| Filename            | Lines | Status | Notes  |
+|---------------------+-------+--------+--------|
+| exec/opdef.go       |    13 | x      |        |
+| parse/exec/opdef.go |    14 | x      | unused |
+| run/time_unix.go    |    25 | x      | unused |
+| exec/operator.go    |    36 | x      |        |
+| scan/type_string.go |    40 | x      |        |
+| demo_test.go        |    60 |        |        |
+| parse/assign.go     |    60 |        |        |
+| value/loop.go       |    66 |        |        |
+| exec/function.go    |    76 |        |        |
+| value/context.go    |    76 |        |        |
+| value/sqrt.go       |    84 |        |        |
+| parse/helpdocs.go   |    94 |        |        |
+| value/asinh.go      |   111 |        |        |
+| value/const.go      |   130 |        |        |
+| value/char.go       |   140 |        |        |
+| value/value.go      |   142 |        |        |
+| ivy.go              |   145 |        |        |
+| value/sinh.go       |   160 |        |        |
+| value/bigfloat.go   |   161 |        |        |
+| value/power.go      |   172 |        |        |
+| value/int.go        |   173 |        |        |
+| value/complex.go    |   175 |        |        |
+| value/log.go        |   175 |        |        |
+| ivy_test.go         |   177 |        |        |
+| run/run.go          |   188 |        |        |
+| value/bigint.go     |   197 |        |        |
+| value/bigrat.go     |   198 |        |        |
+| value/vector.go     |   200 |        |        |
+| value/sin.go        |   201 |        |        |
+| parse/save.go       |   207 |        |        |
+| value/asin.go       |   210 |        |        |
+| parse/function.go   |   237 |        |        |
+| parse/helpgen.go    |   241 |        |        |
+| value/format.go     |   252 |        |        |
+| exec/context.go     |   257 | x      |        |
+| value/index.go      |   307 |        |        |
+| config/config.go    |   351 |        |        |
+| parse/special.go    |   448 |        |        |
+| parse/help.go       |   474 |        |        |
+| value/eval.go       |   662 |        |        |
+| parse/parse.go      |   673 |        |        |
+| scan/scan.go        |   704 | x      |        |
+| value/matrix.go     |   762 |        |        |
+| value/unary.go      |   935 |        |        |
+| value/binary.go     |  1521 |        |        |
 
 #+begin_src awk :stdin data :exports both
   $3 ~ /x/ { done += $2 }
@@ -56,4 +56,4 @@
 #+end_src
 
 #+RESULTS:
-: 8.19% completed out of 11730 lines
+: 9.28% completed out of 11730 lines

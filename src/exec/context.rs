@@ -43,11 +43,11 @@ where
 
     ///  `unary_fn` maps the names of unary functions (ops) to their
     ///  implemenations.
-    unary_fn: HashMap<String, Function<'a, O, E>>,
+    pub(crate) unary_fn: HashMap<String, Function<'a, O, E>>,
 
     ///  `binary_fn` maps the names of binary functions (ops) to their
     ///  implemenations.
-    binary_fn: HashMap<String, Function<'a, O, E>>,
+    pub(crate) binary_fn: HashMap<String, Function<'a, O, E>>,
 
     /// defs is a list of defined ops, in time order. it is used when saving the
     /// `Context` to a file.
@@ -282,7 +282,7 @@ impl<'a, O: Write, E: Write> Context<'a, O, E> {
 
     /// check if `op` is defined as a variable
     #[allow(unused)]
-    fn is_variable(&self, op: String) -> bool {
+    pub fn is_variable(&self, op: &str) -> bool {
         self.variables.iter().any(|var| *var == op)
     }
 }
