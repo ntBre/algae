@@ -75,6 +75,14 @@ impl Type {
     pub fn is_identifier(&self) -> bool {
         matches!(self, Self::Identifier)
     }
+
+    /// Returns `true` if the type is [`Eof`].
+    ///
+    /// [`Eof`]: Type::Eof
+    #[must_use]
+    pub fn is_eof(&self) -> bool {
+        matches!(self, Self::Eof)
+    }
 }
 
 /// a token or text string returned from the scanner

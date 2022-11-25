@@ -3,7 +3,7 @@ use std::{collections::HashMap, str::FromStr};
 use crate::{
     config::Config,
     value::{
-        context::{BinaryOp, Expr, UnaryOp},
+        context::{expr::Expr, BinaryOp, UnaryOp},
         eval::{binary::BinaryBuiltin, product, reduce, scan, unary},
         Value,
     },

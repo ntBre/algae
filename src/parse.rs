@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, fmt::Debug, io::Read, rc::Rc};
 use crate::{
     exec::{context::Context, function::Function},
     scan::{Scanner, Token, Type},
-    value::context::Expr,
+    value::{context::expr::Expr, parse, parse_string},
 };
 
 #[allow(unused)]
@@ -102,8 +102,16 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
         // TODO should be changing base here
     }
 
-    fn expression_list(&self) -> Result<Vec<Expr>, ParseError> {
-        todo!()
+    /// expressionList:
+    /// statementList <eol>
+    fn expression_list(&mut self) -> Result<Vec<Expr>, ParseError> {
+        let exprs = self.statement_list()?;
+        let tok = self.next();
+        if !tok.typ.is_eof() {
+            errorf!(self, "unexpected {tok}");
+        }
+        // TODO debugging tree print
+        Ok(exprs)
     }
 
     fn need(&mut self, typ: Type) -> Token {
@@ -170,4 +178,229 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
         let mut succeeded = false;
         let prev_defn = install_map.get(&name);
     }
+
+    /// statementList:
+    ///    expr [':' expr] [';' statementList]
+    fn statement_list(&mut self) -> Result<Vec<Expr>, ParseError> {
+        let mut expr = self.expr();
+        if !expr.is_nil() && self.peek().typ == Type::Colon {
+            let tok = self.next();
+            expr = Expr::conditional(tok.text, expr, self.expr());
+        }
+        let mut exprs = Vec::new();
+        if !expr.is_nil() {
+            exprs.push(expr);
+        }
+        if self.peek().typ == Type::Semicolon {
+            self.next();
+            if let Ok(more) = self.statement_list() {
+                exprs.extend(more);
+            }
+        }
+        Ok(exprs)
+    }
+
+    /// expr
+    ///    operand
+    ///    operand binop expr
+    fn expr(&mut self) -> Expr {
+        let mut tok = self.next();
+        let expr = self.operand(tok, true);
+        tok = self.peek();
+        use Type::*;
+        match tok.typ {
+            Eof | RightParen | RightBrack | Semicolon | Colon => return expr,
+            Identifier => {
+                if self.context.borrow().defined_binary(&tok.text) {
+                    self.next();
+                    return Expr::binary(tok.text, expr, self.expr());
+                }
+            }
+            Assign => {
+                self.next();
+                match expr {
+                    Expr::VariableExpr { .. } | Expr::Index { .. } => {
+                        return Expr::binary(tok.text, expr, self.expr());
+                    }
+                    _ => {
+                        errorf!(self, "cannot assign to {:#?}", expr);
+                    }
+                }
+            }
+            Operator => {
+                self.next();
+                return Expr::binary(tok.text, expr, self.expr());
+            }
+            _ => {}
+        }
+        errorf!(self, "after expression: unexpected {}", self.peek());
+    }
+
+    /// operand
+    ///    number
+    ///    char constant
+    ///    string constant
+    ///    vector
+    ///    operand [ Expr ]...
+    ///    unop Expr
+    fn operand(&mut self, tok: Token, index_ok: bool) -> Expr {
+        use Type::*;
+        let mut expr = match tok.typ {
+            Operator => Expr::unary(tok.text, self.expr()),
+            Identifier => {
+                if self.context.borrow().defined_unary(&tok.text) {
+                    Expr::unary(tok.text, self.expr())
+                } else {
+                    self.number_or_vector(tok)
+                }
+            }
+            Number | Rational | Complex | String | LeftParen => {
+                self.number_or_vector(tok)
+            }
+            _ => {
+                errorf!(self, "unexpected {tok}");
+            }
+        };
+        if index_ok {
+            expr = self.index(expr);
+        }
+        expr
+    }
+
+    // numberOrVector turns the token and what follows into a numeric Value,
+    // possibly a vector.
+    //
+    // numberOrVector
+    //	number
+    //	string
+    //	numberOrVector...
+    pub(crate) fn number_or_vector(&mut self, tok: Token) -> Expr {
+        let (mut expr, mut s) = self.number(tok);
+        use Type::*;
+        let done = !matches!(
+            self.peek().typ,
+            Number | Rational | Complex | String | Identifier | LeftParen
+        );
+        let mut slice = Vec::new();
+        if expr.is_nil() {
+            slice.extend(eval_string(s));
+        } else {
+            slice = vec![expr];
+        }
+        if !done {
+            loop {
+                let tok = self.peek();
+                match tok.typ {
+                    LeftParen | Identifier => {
+                        if self.context.borrow().defined_op(&tok.text) {
+                            break;
+                        }
+                        let n = self.next();
+                        (expr, s) = self.number(n);
+                        if expr.is_nil() {
+                            // must be a string
+                            slice.extend(eval_string(s));
+                            continue;
+                        }
+                    }
+                    _ => break,
+                }
+                slice.push(expr);
+            }
+        }
+        if slice.len() == 1 {
+            return slice[0].clone();
+        }
+        Expr::SliceExpr { exprs: slice }
+    }
+
+    // index
+    //
+    //	expr
+    //	expr [ expr ]
+    //	expr [ expr ] [ expr ] ....
+    pub(crate) fn index(&mut self, mut expr: Expr) -> Expr {
+        while self.peek().typ == Type::LeftBrack {
+            self.next();
+            let list = self.index_list();
+            let tok = self.next();
+            if tok.typ != Type::RightBrack {
+                errorf!(self, "expected right bracket, found {tok}");
+            }
+            expr = Expr::index(String::new(), expr, list);
+        }
+        expr
+    }
+
+    // indexList
+    //	[[expr] [';' [expr]] ...]
+    fn index_list(&mut self) -> Vec<Expr> {
+        let mut list = Vec::new();
+        // previous element contained an expression
+        let mut seen = false;
+        loop {
+            let tok = self.peek();
+            use Type::*;
+            match tok.typ {
+                RightBrack => {
+                    if !seen {
+                        list.push(Expr::Nil);
+                    }
+                    return list;
+                }
+                Semicolon => {
+                    self.next();
+                    if !seen {
+                        list.push(Expr::Nil);
+                    }
+                    seen = false;
+                }
+                _ => {
+                    list.push(self.expr());
+                    seen = true;
+                }
+            }
+        }
+    }
+
+    // number
+    //	integer
+    //	rational
+    //	string
+    //	variable
+    //	'(' Expr ')'
+    // If the value is a string, value.Expr is nil.
+    pub(crate) fn number(&mut self, tok: Token) -> (Expr, String) {
+        let text = tok.text;
+        let (expr, s) = match tok.typ {
+            Type::Identifier => (self.variable(text), String::new()),
+            Type::String => (Expr::Nil, parse_string(text)),
+            Type::Number | Type::Rational | Type::Complex => {
+                match parse(self.context.borrow().config(), &text) {
+                    Ok(v) => (v, String::new()),
+                    Err(e) => {
+                        errorf!(self, "{text}: {:#?}", e);
+                    }
+                }
+            }
+            Type::LeftParen => {
+                let expr = self.expr();
+                let tok = self.next();
+                if tok.typ != Type::RightParen {
+                    errorf!(self, "expected right paren, found {tok}");
+                }
+                (expr, String::new())
+            }
+            _ => (Expr::Nil, String::new()),
+        };
+        (expr, s)
+    }
+
+    fn variable(&self, _text: String) -> Expr {
+        todo!()
+    }
+}
+
+fn eval_string(s: String) -> Vec<Expr> {
+    s.chars().map(Expr::Char).collect()
 }

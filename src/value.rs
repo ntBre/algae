@@ -1,5 +1,9 @@
 use std::fmt::Display;
 
+use crate::{config::Config, parse::ParseError};
+
+use self::context::expr::Expr;
+
 // might embed this as ValueType in Value struct that also contains is_assigment
 // field. see parse/assign.go
 #[derive(Clone, Debug, Default)]
@@ -20,6 +24,14 @@ impl Display for Value {
     }
 }
 
+pub fn parse_string(_text: String) -> String {
+    todo!()
+}
+
+pub fn parse(_conf: &Config, _s: &str) -> Result<Expr, ParseError> {
+    todo!()
+}
+
 pub mod eval;
 
 pub mod context {
@@ -28,19 +40,7 @@ pub mod context {
 
     use super::Value;
 
-    #[derive(Clone, Debug)]
-    pub enum Expr {
-        Empty,
-    }
-
-    impl Expr {
-        pub fn prog_string(&self) -> String {
-            todo!();
-        }
-        pub fn eval(&self, _ctx: &Context) -> Option<Value> {
-            todo!();
-        }
-    }
+    pub mod expr;
 
     pub trait UnaryOp<'a> {
         fn eval_unary(&self, ctx: &Context<'a>, right: Value) -> Value;

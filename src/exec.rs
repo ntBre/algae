@@ -54,7 +54,7 @@ pub mod operator {
 pub mod function {
 
     use crate::value::{
-        context::{BinaryOp, Expr, UnaryOp},
+        context::{expr::Expr, BinaryOp, UnaryOp},
         Value,
     };
 
