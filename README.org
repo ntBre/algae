@@ -16,7 +16,7 @@
 | value/asinh.go      |   111 |        |        |
 | value/const.go      |   130 |        |        |
 | value/char.go       |   140 |        |        |
-| value/value.go      |   142 |        |        |
+| value/value.go      |   142 | x      |        |
 | ivy.go              |   145 |        |        |
 | value/sinh.go       |   160 |        |        |
 | value/bigfloat.go   |   161 |        |        |
@@ -56,4 +56,4 @@
 #+end_src
 
 #+RESULTS:
-: 9.28% completed out of 11730 lines
+: 10.49% completed out of 11730 lines
