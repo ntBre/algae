@@ -3,3 +3,6 @@ clippy:
 
 test:
 	cargo test -- --nocapture
+
+run:
+	cargo run demo.ivy
