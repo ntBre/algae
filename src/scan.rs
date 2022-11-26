@@ -1,6 +1,5 @@
-use std::cell::RefCell;
 use std::fmt::Debug;
-use std::rc::Rc;
+use std::sync::RwLock;
 use std::{fmt::Display, io::Read};
 
 use crate::exec::operator::predefined;
@@ -118,7 +117,7 @@ impl Display for Token {
 #[derive(Debug)]
 #[allow(unused)]
 pub struct Scanner<'a, R: Read> {
-    context: Rc<RefCell<Context<'a>>>,
+    context: &'a RwLock<Context<'a>>,
     r: R,
     done: bool,
     name: String,
@@ -138,7 +137,7 @@ pub struct Scanner<'a, R: Read> {
 }
 
 impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
-    pub fn new(context: Rc<RefCell<Context<'a>>>, name: &str, r: R) -> Self {
+    pub fn new(context: &'a RwLock<Context<'a>>, name: &str, r: R) -> Self {
         Self {
             context,
             r,
@@ -290,7 +289,7 @@ impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
         if (b'0'..=b'9').contains(&r) {
             return true;
         }
-        let base = self.context.borrow().config().input_base();
+        let base = self.context.read().unwrap().config().input_base();
         if base < 10 {
             return false;
         }
@@ -370,7 +369,8 @@ impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
     }
 
     fn defined(&self, word: &str) -> bool {
-        predefined(word) || self.context.borrow().user_defined(word, true)
+        predefined(word)
+            || self.context.read().unwrap().user_defined(word, true)
     }
 
     fn scan_number(
@@ -378,7 +378,7 @@ impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
         following_slash_ok: bool,
         following_j_ok: bool,
     ) -> bool {
-        let base = self.context.borrow().config().input_base();
+        let base = self.context.read().unwrap().config().input_base();
         let mut digits = digits_for_base(base);
         // if base 0 (default), accept octal for 0 or hex for 0x or 0X.
         if base == 0 && self.accept("0") && self.accept("xX") {
@@ -538,7 +538,7 @@ impl Lex {
                     return Self::Operator;
                 } else if is_all_digits(
                     word,
-                    l.context.borrow().config().input_base(),
+                    l.context.read().unwrap().config().input_base(),
                 ) {
                     l.pos = l.start;
                     return Self::Complex;
@@ -549,7 +549,7 @@ impl Lex {
                 let word = l.word();
                 if word == "o"
                     || is_binary_op(word)
-                    || l.context.borrow().user_defined(word, true)
+                    || l.context.read().unwrap().user_defined(word, true)
                 {
                     if let Some(p) = l.peek() {
                         match p {

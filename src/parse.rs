@@ -1,10 +1,9 @@
 use std::{
-    cell::RefCell,
     collections::HashMap,
     error::Error,
     fmt::{Debug, Display},
     io::Read,
-    rc::Rc,
+    sync::RwLock,
 };
 
 use crate::{
@@ -20,9 +19,7 @@ pub struct Parser<'a, R: Read> {
     token_buf: [Token; 100],
     filename: String,
     line_num: usize,
-    // why do we take this? surely it can't be a different context than the one
-    // in our scanner?
-    context: Rc<RefCell<Context<'a>>>,
+    context: &'a RwLock<Context<'a>>,
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +44,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
     pub fn new(
         filename: &str,
         scanner: Scanner<'a, R>,
-        context: Rc<RefCell<Context<'a>>>,
+        context: &'a RwLock<Context<'a>>,
     ) -> Self {
         Self {
             scanner,
@@ -78,7 +75,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
             Type::Eof => Ok(exprs),
             Type::RightParen => {
                 self.special();
-                self.context.borrow_mut().set_constants();
+                self.context.write().unwrap().set_constants();
                 Ok(exprs)
             }
             Type::Op => {
@@ -175,21 +172,21 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
             fun.left = idents[0].clone();
             fun.name = idents[1].clone();
             fun.right = idents[2].clone();
-            self.context.borrow_mut().declare(&fun.left);
-            self.context.borrow_mut().declare(&fun.right);
-            install_map = self.context.borrow().binary_fn.clone();
+            self.context.write().unwrap().declare(&fun.left);
+            self.context.write().unwrap().declare(&fun.right);
+            install_map = self.context.read().unwrap().binary_fn.clone();
         } else {
             fun.name = idents[0].clone();
             fun.right = idents[1].clone();
-            self.context.borrow_mut().declare(&fun.right);
-            install_map = self.context.borrow().unary_fn.clone();
+            self.context.write().unwrap().declare(&fun.right);
+            install_map = self.context.read().unwrap().unary_fn.clone();
         }
         if fun.name == fun.left || fun.name == fun.right {
             errorf!(self, "argument name `{}` is function name", fun.name);
         }
         // define it but prepare to undefine if there's trouble
         let name = fun.name.clone();
-        self.context.borrow_mut().define(fun);
+        self.context.write().unwrap().define(fun);
         let mut succeeded = false;
         let prev_defn = install_map.get(&name);
     }
@@ -226,7 +223,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
         match tok.typ {
             Eof | RightParen | RightBrack | Semicolon | Colon => return expr,
             Identifier => {
-                if self.context.borrow().defined_binary(&tok.text) {
+                if self.context.read().unwrap().defined_binary(&tok.text) {
                     self.next();
                     return Expr::binary(tok.text, expr, self.expr());
                 }
@@ -263,7 +260,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
         let mut expr = match tok.typ {
             Operator => Expr::unary(tok.text, self.expr()),
             Identifier => {
-                if self.context.borrow().defined_unary(&tok.text) {
+                if self.context.read().unwrap().defined_unary(&tok.text) {
                     Expr::unary(tok.text, self.expr())
                 } else {
                     self.number_or_vector(tok)
@@ -307,7 +304,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
                 let tok = self.peek();
                 match tok.typ {
                     LeftParen | Identifier => {
-                        if self.context.borrow().defined_op(&tok.text) {
+                        if self.context.read().unwrap().defined_op(&tok.text) {
                             break;
                         }
                         let n = self.next();
@@ -391,7 +388,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
             Type::Identifier => (self.variable(text), String::new()),
             Type::String => (Expr::Nil, parse_string(text)),
             Type::Number | Type::Rational | Type::Complex => {
-                match parse(self.context.borrow().config(), &text) {
+                match parse(self.context.read().unwrap().config(), &text) {
                     Ok(v) => (v.into(), String::new()),
                     Err(e) => {
                         errorf!(self, "{text}: {:#?}", e);

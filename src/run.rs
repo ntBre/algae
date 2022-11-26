@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Debug, io::Read, rc::Rc};
+use std::{fmt::Debug, io::Read, sync::RwLock};
 
 use crate::{
     config::Config, exec::context::Context, parse::Parser, value::Value,
@@ -15,27 +15,28 @@ pub struct RunError;
 impl<'a, R: Read + Debug> Parser<'a, R> {
     pub fn run(
         &mut self,
-        context: Rc<RefCell<Context<'a>>>,
+        conf: &Config,
+        context: &'a RwLock<Context<'a>>,
         interactive: bool,
     ) -> Result<(), RunError> {
-        let conf = context.borrow();
         if interactive {
-            print!("{}", conf.config().prompt());
+            print!("{}", conf.prompt());
         }
         let Ok(exprs) = self.line() else {
         return Ok(());
     };
         let values = if !exprs.is_empty() {
             // TODO match interactive and time it if true
-            context.borrow().eval(exprs)
+            context.read().unwrap().eval(exprs)
         } else {
             Vec::new()
         };
-        if print_values(conf.config(), &values) {
+        if print_values(conf, &values) {
             // safe to unwrap because print_values checks that we have at least
             // one
             context
-                .borrow_mut()
+                .write()
+                .unwrap()
                 .assign_global("_", values.last().unwrap().clone());
         }
         if interactive {
