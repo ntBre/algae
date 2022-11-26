@@ -1,6 +1,7 @@
 use super::Value;
 use crate::exec::context::Context;
 
+#[derive(Debug)]
 pub struct ParseBuiltinError;
 
 pub mod binary;
