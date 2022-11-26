@@ -54,9 +54,9 @@ impl Display for Value {
         match self {
             Value::Float(f) => write!(w, "{:.8}", *f),
             Value::Int(d) => write!(w, "{d}"),
+            Value::Complex(i, j) => write!(w, "{i}j{j}"),
+            Value::Rational(i, j) => write!(w, "{i}/{j}"),
             Value::None => todo!(),
-            Value::Complex(_, _) => todo!(),
-            Value::Rational(_, _) => todo!(),
         }
     }
 }
