@@ -1,3 +1,10 @@
+* TODOs [0/4]
+** TODO print the prompt when prompting not printing results
+** TODO don't print the prompt for comments
+** TODO handle exponentials
+** TODO handle the rest of demo.ivy
+
+* Line Survey
 #+name: data
 | Filename            | Lines | Status | Notes  |
 |---------------------+-------+--------+--------|
