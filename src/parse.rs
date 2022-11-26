@@ -1,4 +1,11 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, io::Read, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    error::Error,
+    fmt::{Debug, Display},
+    io::Read,
+    rc::Rc,
+};
 
 use crate::{
     exec::{context::Context, function::Function},
@@ -18,8 +25,16 @@ pub struct Parser<'a, R: Read> {
     context: Rc<RefCell<Context<'a>>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParseError;
+
+impl Error for ParseError {}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
 macro_rules! errorf {
     ($parser: ident, $($args:tt)*) => {
@@ -377,7 +392,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
             Type::String => (Expr::Nil, parse_string(text)),
             Type::Number | Type::Rational | Type::Complex => {
                 match parse(self.context.borrow().config(), &text) {
-                    Ok(v) => (v, String::new()),
+                    Ok(v) => (v.into(), String::new()),
                     Err(e) => {
                         errorf!(self, "{text}: {:#?}", e);
                     }

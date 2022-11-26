@@ -52,17 +52,25 @@ pub enum Expr {
 
     Char(char),
 
+    Value(Value),
+
     Nil,
+}
+
+impl From<Value> for Expr {
+    fn from(value: Value) -> Self {
+        Self::Value(value)
+    }
 }
 
 macro_rules! binary_holders {
     ($($fn_name: ident => $var_name: ident$(,)*)*) => {
 	$(
-    pub fn $fn_name(op: String, left: Expr, right: Expr) -> Self {
-	Self::$var_name {
-	    binary: Box::new(Binary { op, left, right }),
-	}
-    }
+	    pub fn $fn_name(op: String, left: Expr, right: Expr) -> Self {
+		Self::$var_name {
+		    binary: Box::new(Binary { op, left, right }),
+		}
+	    }
 	)*
     }
 }
@@ -88,7 +96,20 @@ impl Expr {
     pub fn prog_string(&self) -> String {
         todo!();
     }
+
+    #[allow(unused)]
     pub fn eval(&self, _ctx: &Context) -> Option<Value> {
+        match self {
+            Expr::Conditional { binary } => todo!(),
+            Expr::Binary { binary } => todo!(),
+            Expr::VariableExpr { name, local } => todo!(),
+            Expr::Index { index } => todo!(),
+            Expr::Unary { unary } => todo!(),
+            Expr::SliceExpr { exprs } => todo!(),
+            Expr::Char(_) => todo!(),
+            Expr::Value(v) => return Some(v.clone()),
+            Expr::Nil => todo!(),
+        }
         todo!();
     }
 
