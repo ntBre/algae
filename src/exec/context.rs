@@ -124,7 +124,7 @@ impl<'a> Context<'a> {
 
     /// eval evaluates a list of expressions
     pub fn eval(&self, exprs: Vec<Expr>) -> Vec<Value> {
-        exprs.iter().flat_map(|e| e.eval(self)).collect()
+        exprs.iter().map(|e| e.eval(self)).collect()
     }
 
     pub fn eval_unary(&'a self, op: String, right: Value) -> Value {
@@ -163,16 +163,11 @@ impl<'a> Context<'a> {
         }
     }
 
-    pub fn eval_binary(
-        &'a self,
-        left: Value,
-        op: String,
-        right: Value,
-    ) -> Value {
+    pub fn eval_binary(&'a self, left: Value, op: &str, right: Value) -> Value {
         if op.contains('.') {
-            return product(self, left, &op, right);
+            return product(self, left, op, right);
         }
-        let Some(fun) = self.binary(&op) else {
+        let Some(fun) = self.binary(op) else {
 	    panic!("binary `{op}` not implemented");
 	};
         fun.eval_binary(self, left, right)

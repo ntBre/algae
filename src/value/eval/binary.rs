@@ -32,9 +32,18 @@ impl<'a> BinaryOp<'a> for BinaryBuiltin {
     fn eval_binary(
         &self,
         _ctx: &Context<'a>,
-        _right: Value,
-        _left: Value,
+        right: Value,
+        left: Value,
     ) -> Value {
+        match self {
+            BinaryBuiltin::Plus => {
+                if let Value::Int(i) = left {
+                    if let Value::Int(j) = right {
+                        return Value::Int(i + j);
+                    }
+                }
+            }
+        }
         todo!()
     }
 }

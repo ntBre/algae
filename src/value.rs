@@ -31,6 +31,22 @@ impl Value {
     complex => Complex,
     rational => Rational,
     }
+
+    /// Returns `true` if the value is [`Float`].
+    ///
+    /// [`Float`]: Value::Float
+    #[must_use]
+    pub fn is_float(&self) -> bool {
+        matches!(self, Self::Float(..))
+    }
+
+    /// Returns `true` if the value is [`Int`].
+    ///
+    /// [`Int`]: Value::Int
+    #[must_use]
+    pub fn is_int(&self) -> bool {
+        matches!(self, Self::Int(..))
+    }
 }
 
 impl Display for Value {

@@ -98,16 +98,23 @@ impl Expr {
     }
 
     #[allow(unused)]
-    pub fn eval(&self, _ctx: &Context) -> Option<Value> {
+    pub fn eval(&self, context: &Context) -> Value {
         match self {
             Expr::Conditional { binary } => todo!(),
-            Expr::Binary { binary } => todo!(),
+            Expr::Binary { binary: b } => {
+                if b.op == "=" {
+                    todo!()
+                }
+                let rhs = b.right.eval(context);
+                let lhs = b.left.eval(context);
+                return context.eval_binary(lhs, &b.op, rhs);
+            }
             Expr::VariableExpr { name, local } => todo!(),
             Expr::Index { index } => todo!(),
             Expr::Unary { unary } => todo!(),
             Expr::SliceExpr { exprs } => todo!(),
             Expr::Char(_) => todo!(),
-            Expr::Value(v) => return Some(v.clone()),
+            Expr::Value(v) => return v.clone(),
             Expr::Nil => todo!(),
         }
         todo!();
