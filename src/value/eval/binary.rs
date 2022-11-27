@@ -34,7 +34,7 @@ impl FromStr for BinaryBuiltin {
             "-" => Ok(Self::Minus),
             "*" => Ok(Self::Mul),
             "/" => Ok(Self::Div),
-            "%" => Ok(Self::Mod),
+            "%" | "mod" => Ok(Self::Mod),
             "**" => Ok(Self::Exp),
             _ => Err(ParseBuiltinError),
         }

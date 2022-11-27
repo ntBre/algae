@@ -100,7 +100,7 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
             match tok.typ {
                 Type::Eof => return !self.tokens.is_empty(),
                 Type::Error => {
-                    errorf!(self, "{}", tok);
+                    errorf!(self, "{:#?}", tok);
                 }
                 Type::Newline => return true,
                 _ => {}

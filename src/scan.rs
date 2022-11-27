@@ -435,6 +435,7 @@ fn is_alpha_numeric(r: u8) -> bool {
 }
 
 #[allow(unused)]
+#[derive(Debug)]
 enum Lex {
     Any,
     Comment,
@@ -483,10 +484,11 @@ impl Lex {
                     b'`' => return Self::RawQuote,
                     b'-' | b'+' => {
                         if l.start > 0 {
-                            let rr = l.input.bytes().last().unwrap();
+                            let rr =
+                                l.input[..l.start].as_bytes().last().unwrap();
                             if rr.is_ascii_alphanumeric()
-                                || rr == b')'
-                                || rr == b']'
+                                || *rr == b')'
+                                || *rr == b']'
                             {
                                 return Self::Operator;
                             }
@@ -499,17 +501,51 @@ impl Lex {
                                 }
                             }
                         }
+                        l.backup();
+                        return Lex::Complex;
                     }
                     _ => {}
                 };
-                self.fallthrough(l, r)
+                if r == b'.' || (b'0'..=b'9').contains(&r) {
+                    l.backup();
+                    return Lex::Complex;
+                }
+                if r == b'=' {
+                    let p = l.peek();
+                    if let Some(c) = p {
+                        if c != b'=' {
+                            return l.emit(Type::Assign);
+                        }
+                    }
+                    l.next_inner();
+                    return Lex::Operator;
+                }
+                if l.is_operator(r) {
+                    return Self::Operator;
+                }
+                if is_alpha_numeric(r) {
+                    l.backup();
+                    return Self::Identifier;
+                }
+                match r {
+                    b'[' => return l.emit(Type::LeftBrack),
+                    b':' => return l.emit(Type::Colon),
+                    b']' => return l.emit(Type::RightBrack),
+                    b'(' => return l.emit(Type::LeftParen),
+                    b')' => return l.emit(Type::RightParen),
+                    _ => {}
+                }
+                if r.is_ascii() {
+                    return l.emit(Type::Char);
+                }
+                l.errorf(format!("unrecognized character {:?}", r))
             }
             Lex::Space => {
                 while let Some(c) = l.peek() {
                     if !is_space(c) {
                         break;
                     }
-                    l.next_token();
+                    l.next_inner();
                 }
                 l.start = l.pos;
                 Self::Any
@@ -519,10 +555,10 @@ impl Lex {
                     if !is_alpha_numeric(c) {
                         break;
                     }
-                    l.next_token();
+                    l.next_inner();
                 }
-                if l.at_terminator() {
-                    let e = format!("bad character {:?}", l.next_token());
+                if !l.at_terminator() {
+                    let e = format!("bad character {:?}", l.next_inner());
                     return l.errorf(e);
                 }
                 let word = l.word();
@@ -555,11 +591,11 @@ impl Lex {
                         match p {
                             // reduction or scan
                             b'/' | b'\\' => {
-                                l.next_token();
+                                l.next_inner();
                             }
                             b'.' => {
                                 // inner or outer product?
-                                l.next_token();
+                                l.next_inner();
                                 if let Some(pp) = l.peek() && is_digit(pp) {
 				    l.backup();
 				    return l.emit(Type::Operator)
@@ -648,48 +684,6 @@ impl Lex {
             }
             Lex::None => Lex::None,
         }
-    }
-
-    fn fallthrough<'a, R: Read + Debug>(
-        &self,
-        l: &mut Scanner<'a, R>,
-        r: u8,
-    ) -> Lex {
-        if r == b'.' || (b'0'..=b'9').contains(&r) {
-            l.backup();
-            return Lex::Complex;
-        }
-        if r == b'=' {
-            if let Some(c) = l.peek() {
-                if c == b'=' {
-                    return l.emit(Type::Assign);
-                }
-            }
-            l.next_token();
-        }
-        self.fallthrough2(l, r)
-    }
-
-    fn fallthrough2(&self, l: &mut Scanner<impl Read + Debug>, r: u8) -> Lex {
-        if l.is_operator(r) {
-            return Self::Operator;
-        }
-        if is_alpha_numeric(r) {
-            l.backup();
-            return Self::Identifier;
-        }
-        match r {
-            b'[' => return l.emit(Type::LeftBrack),
-            b':' => return l.emit(Type::Colon),
-            b']' => return l.emit(Type::RightBrack),
-            b'(' => return l.emit(Type::LeftParen),
-            b')' => return l.emit(Type::RightParen),
-            _ => {}
-        }
-        if r.is_ascii() {
-            return l.emit(Type::Char);
-        }
-        l.errorf(format!("unrecognized character {:?}", r))
     }
 
     /// Returns `true` if the lex is [`None`].
