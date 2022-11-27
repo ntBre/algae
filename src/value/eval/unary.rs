@@ -15,6 +15,7 @@ pub enum UnaryBuiltin {
     Sqrt,
     Acos,
     Char,
+    Code,
 }
 
 /// return whether or not `s` is a UnaryBuiltin
@@ -31,6 +32,7 @@ impl FromStr for UnaryBuiltin {
             "sqrt" => Ok(Self::Sqrt),
             "acos" => Ok(Self::Acos),
             "char" => Ok(Self::Char),
+            "code" => Ok(Self::Code),
             _ => Err(ParseBuiltinError),
         }
     }
@@ -74,6 +76,12 @@ impl<'a> UnaryOp<'a> for UnaryBuiltin {
                     );
                 }
                 panic!("char called with {right}");
+            }
+            UnaryBuiltin::Code => {
+                if let Char(c) = right {
+                    return Int((c as u8).into());
+                }
+                panic!("code called with {right}");
             }
         }
     }
