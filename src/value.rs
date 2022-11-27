@@ -1,6 +1,5 @@
+use num::{Complex, FromPrimitive, Rational64};
 use std::{error::Error, fmt::Display};
-
-use num::{FromPrimitive, Rational64};
 
 use crate::{config::Config, parse::ParseError};
 
@@ -10,27 +9,24 @@ use crate::{config::Config, parse::ParseError};
 pub enum Value {
     Float(f64),
     Int(i64),
-    Complex(Box<Value>, Box<Value>),
+    Complex(Complex<f64>),
     Rational(Rational64),
     #[default]
     None,
 }
 
-macro_rules! constructors {
-    ($($fn_name: ident => $var_name: ident$(,)*)*) => {
-	$(
-	    pub fn $fn_name(i: Value, j: Value) -> Self {
-		Self::$var_name(Box::new(i), Box::new(j))
-	    }
-	)*
-    }
-}
-
 impl Value {
-    constructors! {
-    complex => Complex,
+    fn complex(v1: Value, v2: Value) -> Self {
+        if let Self::Int(v1) = v1 {
+            if let Self::Int(v2) = v2 {
+                return Self::Complex(Complex {
+                    re: v1 as f64,
+                    im: v2 as f64,
+                });
+            }
+        }
+        todo!()
     }
-
     fn rational(v1: Value, v2: Value) -> Self {
         if let Self::Int(v1) = v1 {
             if let Self::Int(v2) = v2 {
@@ -74,7 +70,7 @@ impl Display for Value {
         match self {
             Value::Float(f) => write!(w, "{:.8}", *f),
             Value::Int(d) => write!(w, "{d}"),
-            Value::Complex(i, j) => write!(w, "{i}j{j}"),
+            Value::Complex(c) => write!(w, "{c}"),
             Value::Rational(r) => write!(w, "{r}"),
             Value::None => todo!(),
         }

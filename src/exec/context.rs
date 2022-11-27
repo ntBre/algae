@@ -127,7 +127,7 @@ impl<'a> Context<'a> {
         exprs.iter().map(|e| e.eval(self)).collect()
     }
 
-    pub fn eval_unary(&'a self, op: String, right: Value) -> Value {
+    pub fn eval_unary(&'a self, op: &str, right: Value) -> Value {
         let l = op.len();
         if l > 1 {
             let opi = op.chars().last().unwrap();
