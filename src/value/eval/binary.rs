@@ -41,6 +41,25 @@ impl FromStr for BinaryBuiltin {
     }
 }
 
+macro_rules! make_ops {
+    ($typ: path, $p1: pat_param, $p2: pat_param, $left: ident, $right: ident,
+     $expr: expr) => {
+        if let $typ($p1) = $left {
+            if let $typ($p2) = $right {
+                return $typ($expr);
+            }
+        }
+    };
+    ($typ1: path, $p1: pat_param, $typ2: path, $p2: pat_param,
+     $left: ident, $right: ident, $ret_typ: path, $expr: expr) => {
+        if let $typ1($p1) = $left {
+            if let $typ2($p2) = $right {
+                return $ret_typ($expr);
+            }
+        }
+    };
+}
+
 impl<'a> BinaryOp<'a> for BinaryBuiltin {
     fn eval_binary(
         &self,
@@ -48,55 +67,28 @@ impl<'a> BinaryOp<'a> for BinaryBuiltin {
         left: Value,
         right: Value,
     ) -> Value {
+        use Value::*;
         match self {
             BinaryBuiltin::Plus => {
-                if let Value::Int(i) = left {
-                    if let Value::Int(j) = right {
-                        return Value::Int(i + j);
-                    }
-                }
-
-                if let Value::Rational(i) = left {
-                    if let Value::Rational(j) = right {
-                        return Value::Rational(i + j);
-                    }
-                }
+                make_ops!(Int, i, j, left, right, i + j);
+                make_ops!(Rational, i, j, left, right, i + j);
             }
             BinaryBuiltin::Minus => {
-                if let Value::Int(i) = left {
-                    if let Value::Int(j) = right {
-                        return Value::Int(i - j);
-                    }
-                }
+                make_ops!(Int, i, j, left, right, i - j);
             }
             BinaryBuiltin::NewComplex => return Value::complex(left, right),
             BinaryBuiltin::Mul => {
-                if let Value::Int(i) = left {
-                    if let Value::Int(j) = right {
-                        return Value::Int(i * j);
-                    }
-                }
+                make_ops!(Int, i, j, left, right, i * j);
             }
             BinaryBuiltin::Div => {
-                if let Value::Int(i) = left {
-                    if let Value::Int(j) = right {
-                        return Value::Int(i / j);
-                    }
-                }
+                make_ops!(Int, i, j, left, right, i / j);
             }
             BinaryBuiltin::Mod => {
-                if let Value::Int(i) = left {
-                    if let Value::Int(j) = right {
-                        return Value::Int(i % j);
-                    }
-                }
+                make_ops!(Int, i, j, left, right, i % j);
             }
             BinaryBuiltin::Exp => {
-                if let Value::Int(i) = left {
-                    if let Value::Int(j) = right {
-                        return Value::Int(i.pow(j.try_into().unwrap()));
-                    }
-                }
+                make_ops!(Int, i, j, left, right, i.pow(j.try_into().unwrap()));
+                make_ops!(Rational, i, Int, j, left, right, Rational, i.pow(j));
             }
         }
         todo!()
