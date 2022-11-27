@@ -14,8 +14,9 @@ fn main() {
         let f = std::fs::File::open(infile).expect("failed to open file");
         let scanner = Scanner::new(&context, "file", Box::new(f));
         let mut parser = Parser::new("<stdin>", scanner, &context);
-        while parser.run(&conf, &context, true).is_err() {}
+        while parser.run(&conf, &context, false).is_err() {}
     } else {
+        // interactive
         let scanner = Scanner::new(&context, "<stdin>", std::io::stdin());
         let mut parser = Parser::new("<stdin>", scanner, &context);
         while parser.run(&conf, &context, true).is_err() {}

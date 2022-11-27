@@ -1,4 +1,8 @@
-use std::{fmt::Debug, io::Read, sync::RwLock};
+use std::{
+    fmt::Debug,
+    io::{Read, Write},
+    sync::RwLock,
+};
 
 use crate::{
     config::Config, exec::context::Context, parse::Parser, value::Value,
@@ -21,6 +25,8 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
     ) -> Result<(), RunError> {
         if interactive {
             print!("{}", conf.prompt());
+            // have to flush to get the prompt to go before any input
+            std::io::stdout().flush().unwrap();
         }
         let Ok(exprs) = self.line() else {
         return Ok(());

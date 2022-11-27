@@ -1,7 +1,7 @@
-* TODOs [0/4]
+* TODOs [2/4]
 ** TODO print the prompt when prompting not printing results
-** TODO don't print the prompt for comments
-** TODO handle exponentials
+** DONE don't print the prompt for comments
+** DONE handle exponentials
 ** TODO handle the rest of demo.ivy
 
 * Line Survey
