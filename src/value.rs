@@ -11,7 +11,7 @@ pub enum Value {
     Float(f64),
     Int(i32),
     Complex(Box<Value>, Box<Value>),
-    Rational(Box<Value>, Box<Value>),
+    Rational(num::Rational32),
     #[default]
     None,
 }
@@ -29,7 +29,15 @@ macro_rules! constructors {
 impl Value {
     constructors! {
     complex => Complex,
-    rational => Rational,
+    }
+
+    fn rational(v1: Value, v2: Value) -> Self {
+        if let Self::Int(v1) = v1 {
+            if let Self::Int(v2) = v2 {
+                return Self::Rational(num::Rational32::new(v1, v2));
+            }
+        }
+        panic!("tried to make a rational from {v1} and {v2}");
     }
 
     /// Returns `true` if the value is [`Float`].
@@ -55,7 +63,7 @@ impl Display for Value {
             Value::Float(f) => write!(w, "{:.8}", *f),
             Value::Int(d) => write!(w, "{d}"),
             Value::Complex(i, j) => write!(w, "{i}j{j}"),
-            Value::Rational(i, j) => write!(w, "{i}/{j}"),
+            Value::Rational(r) => write!(w, "{r}"),
             Value::None => todo!(),
         }
     }

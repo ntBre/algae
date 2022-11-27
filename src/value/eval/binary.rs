@@ -55,6 +55,12 @@ impl<'a> BinaryOp<'a> for BinaryBuiltin {
                         return Value::Int(i + j);
                     }
                 }
+
+                if let Value::Rational(i) = left {
+                    if let Value::Rational(j) = right {
+                        return Value::Rational(i + j);
+                    }
+                }
             }
             BinaryBuiltin::Minus => {
                 if let Value::Int(i) = left {
