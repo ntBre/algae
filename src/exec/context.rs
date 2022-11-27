@@ -137,7 +137,7 @@ impl<'a> Context<'a> {
                 _ => {}
             }
         }
-        let Some(fun) = self.unary(&op) else {
+        let Some(fun) = self.unary(op) else {
 	    panic!("unary `{op}` not implemented")
 	};
         fun.eval_unary(self, right)

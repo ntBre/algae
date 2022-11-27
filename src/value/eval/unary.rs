@@ -14,6 +14,7 @@ pub enum UnaryBuiltin {
     Roll,
     Sqrt,
     Acos,
+    Char,
 }
 
 /// return whether or not `s` is a UnaryBuiltin
@@ -29,6 +30,7 @@ impl FromStr for UnaryBuiltin {
             "?" => Ok(Self::Roll),
             "sqrt" => Ok(Self::Sqrt),
             "acos" => Ok(Self::Acos),
+            "char" => Ok(Self::Char),
             _ => Err(ParseBuiltinError),
         }
     }
@@ -61,6 +63,18 @@ impl<'a> UnaryOp<'a> for UnaryBuiltin {
                 None => todo!(),
                 Char(_) => todo!(),
             },
+            UnaryBuiltin::Char => {
+                if let Char(c) = right {
+                    return Char(c);
+                }
+
+                if let Int(c) = right {
+                    return Char(
+                        char::from_u32(c.try_into().unwrap()).unwrap(),
+                    );
+                }
+                panic!("char called with {right}");
+            }
         }
     }
 }

@@ -172,6 +172,17 @@ fn set_int_string(
     if base == 0 {
         base = 10;
     }
+    if s.len() >= 2 {
+        match &s[..2] {
+            "0x" => {
+                return i64::from_str_radix(s.strip_prefix("0x").unwrap(), 16)
+            }
+            "0o" => {
+                return i64::from_str_radix(s.strip_prefix("0o").unwrap(), 8);
+            }
+            _ => {}
+        }
+    }
     i64::from_str_radix(s, base as u32)
 }
 

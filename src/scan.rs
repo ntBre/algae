@@ -380,8 +380,11 @@ impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
     ) -> bool {
         let base = self.context.read().unwrap().config().input_base();
         let mut digits = digits_for_base(base);
-        // if base 0 (default), accept octal for 0 or hex for 0x or 0X.
-        if base == 0 && self.accept("0") && self.accept("xX") {
+        // if base 0 (default), accept octal for 0o or oO or hex for 0x or 0X.
+        if base == 0
+            && self.accept("0")
+            && (self.accept("xX") || self.accept("oO"))
+        {
             digits = digits_for_base(16);
         }
         self.accept_run(&digits);
