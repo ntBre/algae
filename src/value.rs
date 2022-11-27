@@ -1,6 +1,6 @@
 use std::{error::Error, fmt::Display};
 
-use num::FromPrimitive;
+use num::{FromPrimitive, Rational64};
 
 use crate::{config::Config, parse::ParseError};
 
@@ -9,9 +9,9 @@ use crate::{config::Config, parse::ParseError};
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum Value {
     Float(f64),
-    Int(i32),
+    Int(i64),
     Complex(Box<Value>, Box<Value>),
-    Rational(num::Rational32),
+    Rational(Rational64),
     #[default]
     None,
 }
@@ -34,10 +34,22 @@ impl Value {
     fn rational(v1: Value, v2: Value) -> Self {
         if let Self::Int(v1) = v1 {
             if let Self::Int(v2) = v2 {
-                return Self::Rational(num::Rational32::new(v1, v2));
+                return Self::Rational(Rational64::new(v1, v2));
             }
         }
-        panic!("tried to make a rational from {v1} and {v2}");
+
+        if let Self::Rational(v1) = v1 {
+            if let Self::Int(v2) = v2 {
+                return Self::Rational(v1 / Rational64::from(v2));
+            }
+        }
+
+        if let Self::Int(v1) = v1 {
+            if let Self::Rational(v2) = v2 {
+                return Self::Rational(Rational64::from(v1) / v2);
+            }
+        }
+        panic!("tried to make a rational from {v1:#?} and {v2:#?}");
     }
 
     /// Returns `true` if the value is [`Float`].
@@ -137,7 +149,7 @@ fn set_big_rat_from_float_string(s: &str) -> Result<Value, Box<dyn Error>> {
         panic!("bad number syntax: {s}");
     }
     let f = s.parse::<f64>()?;
-    let r = num::Rational32::from_f64(f).ok_or(ParseError)?;
+    let r = Rational64::from_f64(f).ok_or(ParseError)?;
     Ok(Value::rational(
         Value::Int(*r.numer()),
         Value::Int(*r.denom()),
@@ -155,12 +167,12 @@ fn big_rat() {
 fn set_int_string(
     conf: &Config,
     s: &str,
-) -> Result<i32, std::num::ParseIntError> {
+) -> Result<i64, std::num::ParseIntError> {
     let mut base = conf.input_base();
     if base == 0 {
         base = 10;
     }
-    i32::from_str_radix(s, base as u32)
+    i64::from_str_radix(s, base as u32)
 }
 
 fn parse_two(

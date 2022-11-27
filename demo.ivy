@@ -28,13 +28,8 @@
 1.2
 # In fact, ivy is a "bignum" calculator that can handle huge numbers and rationals made of huge numbers.
 1e10       # Still an integer.
-1e100      # Still an integer.
 1e10/3     # Not an integer, but an exact rational.
 3/1e10     # Not an integer, but an exact rational.
-2**64      # They can get big.
-2**640     # They can get really big.
-# They can get really really big. Type a newline to see 2**6400 scroll by.
-2**6400
 # Complex numbers are supported.  1+3i is made like this:
 1j3
 # The j operator constructs a complex number:

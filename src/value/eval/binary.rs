@@ -88,7 +88,16 @@ impl<'a> BinaryOp<'a> for BinaryBuiltin {
             }
             BinaryBuiltin::Exp => {
                 make_ops!(Int, i, j, left, right, i.pow(j.try_into().unwrap()));
-                make_ops!(Rational, i, Int, j, left, right, Rational, i.pow(j));
+                make_ops!(
+                    Rational,
+                    i,
+                    Int,
+                    j,
+                    left,
+                    right,
+                    Rational,
+                    i.pow(j.try_into().unwrap())
+                );
             }
         }
         todo!()
