@@ -11,6 +11,7 @@ pub enum Value {
     Int(i64),
     Complex(Complex<f64>),
     Rational(Rational64),
+    Char(char),
     #[default]
     None,
 }
@@ -73,6 +74,7 @@ impl Display for Value {
             Value::Complex(c) => write!(w, "{c}"),
             Value::Rational(r) => write!(w, "{r}"),
             Value::None => todo!(),
+            Value::Char(c) => write!(w, "{c}"),
         }
     }
 }

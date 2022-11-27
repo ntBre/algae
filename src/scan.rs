@@ -655,16 +655,22 @@ impl Lex {
             Lex::Quote => {
                 let quote = l.next_inner().expect("expected quote");
                 loop {
+                    // switch l.next()
                     let Some(r) = l.next_inner() else {
 			return l.errorf("unterminated quoted string".to_owned());
 		    };
-                    if let Some(r) = l.next_inner() && r != b'\n' && r == b'\\' {
-				continue;
-		    } else if r == b'\n' {
-			return l.errorf("unterminated quote string".to_owned());
-		    } else if r == quote {
-			return l.emit(Type::String);
-		    }
+                    if r == b'\\' {
+                        if let Some(r) = l.next_inner() && r != b'\n' {
+			    // pass
+			} else {
+			    return l.errorf("unterminated quoted string".to_owned());
+			}
+                    } else if r == b'\n' {
+                        return l
+                            .errorf("unterminated quote string".to_owned());
+                    } else if r == quote {
+                        return l.emit(Type::String);
+                    }
                 }
             }
             Lex::RawQuote => {

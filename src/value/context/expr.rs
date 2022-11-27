@@ -50,8 +50,6 @@ pub enum Expr {
         exprs: Vec<Expr>,
     },
 
-    Char(char),
-
     Value(Value),
 
     Nil,
@@ -115,7 +113,6 @@ impl Expr {
                 return context.eval_unary(&u.op, u.right.eval(context));
             }
             Expr::SliceExpr { exprs } => todo!(),
-            Expr::Char(_) => todo!(),
             Expr::Value(v) => return v.clone(),
             Expr::Nil => todo!(),
         }

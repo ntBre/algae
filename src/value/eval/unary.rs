@@ -50,6 +50,7 @@ impl<'a> UnaryOp<'a> for UnaryBuiltin {
                 Complex(_) => todo!(),
                 Rational(_) => todo!(),
                 None => todo!(),
+                Char(_) => todo!(),
             },
             UnaryBuiltin::Roll => todo!(),
             UnaryBuiltin::Acos => match right {
@@ -58,6 +59,7 @@ impl<'a> UnaryOp<'a> for UnaryBuiltin {
                 Complex(c) => Value::Complex(c.acos()),
                 Rational(_) => todo!(),
                 None => todo!(),
+                Char(_) => todo!(),
             },
         }
     }

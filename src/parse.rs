@@ -9,7 +9,7 @@ use std::{
 use crate::{
     exec::{context::Context, function::Function},
     scan::{Scanner, Token, Type},
-    value::{context::expr::Expr, parse, parse_string},
+    value::{context::expr::Expr, parse, parse_string, Value},
 };
 
 #[allow(unused)]
@@ -414,5 +414,5 @@ impl<'a, R: Read + Debug> Parser<'a, R> {
 }
 
 fn eval_string(s: String) -> Vec<Expr> {
-    s.chars().map(Expr::Char).collect()
+    s.chars().map(|c| Expr::Value(Value::Char(c))).collect()
 }
