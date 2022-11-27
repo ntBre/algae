@@ -309,28 +309,28 @@ impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
             b'!' => {
                 if let Some(p) = self.peek() {
                     if p == b'=' {
-                        self.next_token();
+                        self.next_inner();
                     }
                 }
             }
             b'>' => {
                 if let Some(p) = self.peek() {
                     if p == b'>' || p == b'=' {
-                        self.next_token();
+                        self.next_inner();
                     }
                 }
             }
             b'<' => {
                 if let Some(p) = self.peek() {
                     if [b'<', b'='].contains(&p) {
-                        self.next_token();
+                        self.next_inner();
                     }
                 }
             }
             b'*' => {
                 if let Some(p) = self.peek() {
                     if p == b'*' {
-                        self.next_token();
+                        self.next_inner();
                     }
                 }
             }
@@ -340,7 +340,7 @@ impl<'a, R: Read + std::fmt::Debug> Scanner<'a, R> {
                         return false;
                     }
                 }
-                self.next_token();
+                self.next_inner();
             }
             _ => return false,
         }
