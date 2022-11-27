@@ -137,9 +137,11 @@ pub fn parse(conf: &Config, s: &str) -> Result<Value, ParseError> {
     if let Ok(i) = set_int_string(conf, s) {
         return Ok(Value::Int(i));
     }
-    // NOTE: skipping bigints again
     if let Ok(r) = set_big_rat_from_float_string(s) {
         return Ok(r);
+    }
+    if let Ok(r) = s.parse::<f64>() {
+        return Ok(Value::Float(r));
     }
     Err(ParseError)
 }

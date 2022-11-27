@@ -87,7 +87,18 @@ impl<'a> BinaryOp<'a> for BinaryBuiltin {
                 make_ops!(Int, i, j, left, right, i % j);
             }
             BinaryBuiltin::Exp => {
-                make_ops!(Int, i, j, left, right, i.pow(j.try_into().unwrap()));
+                if let Int(i) = left {
+                    if let Int(j) = right {
+                        if let Some(res) = i.checked_pow(j.try_into().unwrap())
+                        {
+                            return Int(res);
+                        } else {
+                            return Float(
+                                (i as f64).powi(j.try_into().unwrap()),
+                            );
+                        }
+                    }
+                }
                 make_ops!(
                     Rational,
                     i,
